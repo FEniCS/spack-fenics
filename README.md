@@ -35,6 +35,13 @@ Run `spack repo list` again to show, e.g.:
 Package definitions in `fenics` will now take precedence over duplicates in
 `builtin`.
 
+Running `spack spec -N fenics-dolfinx` should give output like:
+
+```
+ -   fenics.fenics-dolfinx@0.9.0~adios2~ipo~petsc~slepc build_system=cmake build_type=RelWithDebInfo generator=make partitioners:=parmetis platform=darwin os=sequoia target=m1 %c,cxx=apple-clang@17.0.0
+[e]      ^builtin.apple-clang@17.0.0 build_system=bundle platform=darwin os=sequoia target=aarch64
+```
+
 ## Uses
 
 1. Releasing Spack packages to users without waiting for PRs to be merged into
