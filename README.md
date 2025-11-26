@@ -15,7 +15,7 @@ On a system with Spack setup:
     spack repo list
 
 You should see the `builtin` repository which points at a folder containing the
-complete upstream Spack packages repository
+complete upstream Spack packages repository, e.g.:
 
     [+] builtin    v2.2    /Users/jack.hale/.spack/package_repos/fncqgg4/repos/spack_repo/builtin
 
