@@ -42,6 +42,8 @@ Running `spack spec -N fenics-dolfinx` should give output like:
 [e]      ^builtin.apple-clang@17.0.0 build_system=bundle platform=darwin os=sequoia target=aarch64
 ```
 
+where `fenics.fenics-dolfinx` implies the use of the `fenics` repository.
+
 ## Uses
 
 1. Releasing Spack packages to users without waiting for PRs to be merged into
