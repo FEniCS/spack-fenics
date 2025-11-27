@@ -60,6 +60,6 @@ where `fenics.fenics-dolfinx` implies the use of the `fenics` repository.
 
 Diffing against an upstream `builtin` package set:
 
-   cd spack-fenics/spack_repo/fenics/package
    export OTHER_PACKAGES_DIR=/path/to/spack-packages/repos/spack_repo/builtin/packages 
-   for dir in */; do; git --no-pager diff --no-index OTHER_PACKAGES_DIR/$dir $dir; done;
+   cd spack-fenics/spack_repo/fenics/package
+   for dir in */; do; git --no-pager diff --no-index $OTHER_PACKAGES_DIR/$dir $dir; done;
