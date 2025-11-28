@@ -10,7 +10,12 @@ precedence over the upstream package repository.
 For full instructions on using `spack repo` see [the Spack
 documentation](https://spack.readthedocs.io/en/latest/repositories.html).
 
-On a system with Spack setup:
+TL;DR on a system with `spack` installed:
+
+    spack repo add https://github.com/FEniCS/spack-fenics.git
+    spack repo list
+
+Alternatively, to work with this repository:
 
     spack repo list
 
@@ -35,11 +40,11 @@ Run `spack repo list` again to show, e.g.:
 Package definitions in `fenics` will now take precedence over duplicates in
 `builtin`.
 
-Running `spack spec -N fenics-dolfinx` should give output like:
+Running `spack spec -N fenics-dolfinx@0.9` should give output like:
 
 ```
  -   fenics.fenics-dolfinx@0.9.0~adios2~ipo~petsc~slepc build_system=cmake build_type=RelWithDebInfo generator=make partitioners:=parmetis platform=darwin os=sequoia target=m1 %c,cxx=apple-clang@17.0.0
-[e]      ^builtin.apple-clang@17.0.0 build_system=bundle platform=darwin os=sequoia target=aarch64
+...
 ```
 
 where `fenics.fenics-dolfinx` implies the use of the `fenics` repository.
@@ -49,4 +54,12 @@ where `fenics.fenics-dolfinx` implies the use of the `fenics` repository.
 1. Releasing Spack packages to users without waiting for PRs to be merged into
    the upstream `builtin` repository.
 2. Allows experimentation with FEniCS Spack packages without having to maintain
-   a full branch of the upstream `builtin` repository. 
+   a full branch of the upstream `builtin` repository.
+
+## Developer notes
+
+Diffing against an upstream `builtin` package set:
+
+   export OTHER_PACKAGES_DIR=/path/to/spack-packages/repos/spack_repo/builtin/packages 
+   cd spack-fenics/spack_repo/fenics/package
+   for dir in */; do; git --no-pager diff --no-index $OTHER_PACKAGES_DIR/$dir $dir; done;
