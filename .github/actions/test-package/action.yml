@@ -1,5 +1,5 @@
 name: test-spack
-description: 'Builds a spack package'
+description: 'Builds a spack package from given spack-spec'
 inputs:
   spec:
     description: 'Spack spec syntax'
