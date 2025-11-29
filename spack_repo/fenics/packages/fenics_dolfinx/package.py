@@ -48,7 +48,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("c", type="build")  # HDF5 dependency requires C in CMake config
     depends_on("cxx", type="build")
 
-    conflicts("%gcc@13:", when="@0.10:")
+    conflicts("%gcc@:13", when="@0.10:")
 
     # Graph partitioner dependencies
     depends_on("kahip@3.12:", when="partitioners=kahip")
@@ -78,10 +78,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("adios2+mpi", when="+adios2")
     # This will need to be opened up in the future if we move away from locked
     # releases
-    depends_on("fenics-ufcx@main", when="@main")
-    depends_on("fenics-basix@main", when="@main")
-    depends_on("fenics-ffcx@main", when="@main")
-    for ver in ("0.10", "0.9", "0.8", "0.7", "0.6"):
+    for ver in ("main", "0.10", "0.9", "0.8", "0.7", "0.6"):
         depends_on(f"fenics-ufcx@:{ver}", when=f"@:{ver}")
         depends_on(f"fenics-basix@:{ver}", when=f"@:{ver}")
         depends_on(f"py-fenics-ffcx@:{ver}", when=f"@:{ver}", type="test")
