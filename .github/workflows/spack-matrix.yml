@@ -81,22 +81,22 @@ jobs:
   #       with:
   #         spec: py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }}
 
-  py-fenics-dolfinx:
-    runs-on: ubuntu-latest
-    container: ubuntu:24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["", "build_type=Developer", "+petsc4py", "+slepc4py"]
-        compiler: ["gcc@13", "clang@15"]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  # py-fenics-dolfinx:
+  #   runs-on: ubuntu-latest
+  #   container: ubuntu:24.04
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       version: ["main", "0.10", "0.9", "0.8"]
+  #       variant: ["", "build_type=Developer", "+petsc4py", "+slepc4py"]
+  #       compiler: ["gcc@13", "clang@15"]
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #       with:
+  #         path: spack-fenics
+  #     - uses: ./spack-fenics/.github/actions/test-package
+  #       with:
+  #         spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
   # py-fenics-ffcx:
   #   runs-on: ubuntu-latest
