@@ -26,7 +26,7 @@ runs:
       shell: sh
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: |
-        apt-get install -y g++-13 gcc-13 gfortran-13
+        apt-get install -y g++-13 gcc-13 gfortran-13 build-essential
         echo "CC=gcc-13" >> $GITHUB_ENV
         echo "CXX=g++-13" >> $GITHUB_ENV
         echo "FC=gfortran-13" >> $GITHUB_ENV
