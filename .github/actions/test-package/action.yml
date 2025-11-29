@@ -47,14 +47,13 @@ runs:
         spack config get repos
         spack repo list
     
-    # TODO: fix - why do they not work?
-    # spack mirror add develop-developer-tools-x86_64_v3-linux-gnu https://binaries.spack.io/develop/developer-tools-x86_64_v3-linux-gnu
+      # spack mirror add develop https://binaries.spack.io/develop
     - name: add cache
       shell: spack-bash {0}
       run: |
-        spack mirror add develop https://binaries.spack.io/develop
-        spack config add "packages:all:target:[x86_64_v3]"
+        spack mirror add e4s-25.11 https://cache.e4s.io/25.11
         spack buildcache keys --install --trust
+        spack config add "packages:all:target:[x86_64_v3]"
 
     - name: Compiler find
       shell: spack-bash {0}
