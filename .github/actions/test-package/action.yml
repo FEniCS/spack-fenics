@@ -62,13 +62,13 @@ runs:
       shell: sh
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: |
-        spack install --use-buildcache only gcc@13
+        spack buildcache install gcc@13
 
     - name: Install clang-15
       shell: sh
       if: contains(inputs.spec, 'clang@15')
       run: |
-        spack install --use-buildcache only clang@15
+        spack buildcache install clang@15
 
     - name: Create env
       shell: spack-bash {0}
