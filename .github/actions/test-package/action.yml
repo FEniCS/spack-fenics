@@ -1,0 +1,76 @@
+name: test-spack
+description: 'Builds a spack package'
+inputs:
+  spec:
+    description: 'Spack spec syntax'
+    required: true
+    default: "py-fenics-dolfinx"
+    type: string
+runs:
+  using: "composite"
+  steps:
+    - name: dependencies
+      shell: sh
+      run: |
+        apt-get -y update
+        apt-get install -y bzip2 curl file git gzip make patch python3-minimal tar unzip xz-utils
+
+    - name: install gcc-13 (default)
+      shell: sh
+      if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
+      run: |
+        apt-get install -y g++-13 gcc-13 gfortran-13
+        echo "CC=gcc-13" >> $GITHUB_ENV
+        echo "CXX=g++-13" >> $GITHUB_ENV
+        echo "FC=gfortran-13" >> $GITHUB_ENV
+
+    - name: install clang-15
+      shell: sh
+      if: contains(inputs.spec, 'clang@15')
+      run: |
+        apt-get install -y clang-15 flang-15
+        echo "CC=clang-15" >> $GITHUB_ENV
+        echo "CXX=clang++-15" >> $GITHUB_ENV
+        echo "FC=flang-15" >> $GITHUB_ENV
+    
+    - name: set up spack
+      uses: spack/setup-spack@v2
+      with:
+        ref: develop
+        color: true
+        path: spack
+
+    - name: add repos
+      shell: spack-bash {0}
+      run: |
+        spack repo add --name fenics $GITHUB_WORKSPACE/spack-fenics/spack_repo/fenics
+        spack config get repos
+        spack repo list
+    
+    # TODO: fix - why do they not work?
+    # - name: add cache
+    #   shell: spack-bash {0}
+    #   run: |
+    #     spack mirror add develop-developer-tools-x86_64_v3-linux-gnu https://binaries.spack.io/develop/developer-tools-x86_64_v3-linux-gnu
+    #     spack mirror add develop https://binaries.spack.io/develop
+    #     spack buildcache keys --install --trust
+
+    - name: compiler find
+      shell: spack-bash {0}
+      run: spack compiler find
+
+    - name: create env
+      shell: spack-bash {0}
+      run: spack env create -d ./env
+
+    - name: add py-fenics-dolfinx
+      shell: spack-bash {0}
+      run: spack -e ./env add ${{ inputs.spec }}
+
+    - name: concretize
+      shell: spack-bash {0}
+      run: spack -e ./env concretize -j 4
+    
+    - name: install
+      shell: spack-bash {0}
+      run: spack -e ./env install -j 4

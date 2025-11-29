@@ -1,0 +1,136 @@
+name: spack-matrix
+
+on:
+  push:
+  #   branches:
+  #     - main
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * MON" # weekly, mondays 2am
+
+jobs:
+  fenics-basix:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.10", "0.9", "0.8"]
+        variant: ["", "build_type=Debug", "build_type=Release"]
+        compiler: ["gcc@13", "clang@15"]
+    steps:
+      - name: clone
+        uses: actions/checkout@v5
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+
+  fenics-dolfinx:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.10", "0.9", "0.8"]
+        variant: ["", "build_type=Debug", "build_type=Release", "partitioners=kahip,parmetis,scotch", "+petsc", "+slepc"]
+        compiler: ["gcc@13", "clang@15"]
+        exclude:
+          # kahip does not support clang
+          - variant: "partitioners=kahip,parmetis,scotch"
+            compiler: "clang@15"
+    steps:
+      - name: clone
+        uses: actions/checkout@v5
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+
+
+  fenics-ufcx:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.10", "0.9", "0.8"]
+        compiler: ["gcc@13", "clang@15"]
+    steps:
+      - name: clone
+        uses: actions/checkout@v5
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: fenics-ufcx@${{ matrix.version }} %${{ matrix.compiler }}
+
+  py-fenics-basix:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.10", "0.9", "0.8"]
+        compiler: ["gcc@13", "clang@15"]
+    steps:
+      - name: clone
+        uses: actions/checkout@v5
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }}
+
+  py-fenics-dolfinx:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.10", "0.9", "0.8"]
+        variant: ["", "build_type=Debug", "build_type=Release", "+petsc", "+slepc"]
+        compiler: ["gcc@13", "clang@15"]
+    steps:
+      - name: clone
+        uses: actions/checkout@v5
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+
+  py-fenics-ffcx:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.10", "0.9", "0.8"]
+    steps:
+      - name: clone
+        uses: actions/checkout@v5
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: py-fenics-ffcx@${{ matrix.version }}
+
+  py-fenics-ufl:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "2025.2", "2025.1", "2024.2", "2024.1"]
+    steps:
+      - name: clone
+        uses: actions/checkout@v5
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: py-fenics-ufl@${{ matrix.version }}
