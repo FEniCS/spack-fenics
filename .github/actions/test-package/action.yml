@@ -55,20 +55,21 @@ runs:
         spack buildcache keys --install --trust
         spack config add "packages:all:target:[x86_64_v3]"
 
-    # - name: Compiler find
-    #   shell: spack-bash {0}
-    #   run: spack compiler find
     - name: Install gcc-13 (default)
-      shell: sh
+      shell: spack-bash {0}
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: |
         spack buildcache install gcc@13
 
     - name: Install clang-15
-      shell: sh
+      shell: spack-bash {0}
       if: contains(inputs.spec, 'clang@15')
       run: |
         spack buildcache install clang@15
+
+    - name: Compiler find
+      shell: spack-bash {0}
+      run: spack compiler find
 
     - name: Create env
       shell: spack-bash {0}
