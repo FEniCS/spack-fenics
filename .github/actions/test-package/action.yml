@@ -48,11 +48,11 @@ runs:
         spack repo list
     
     # TODO: fix - why do they not work?
-    # spack mirror add develop https://binaries.spack.io/develop
+    # spack mirror add develop-developer-tools-x86_64_v3-linux-gnu https://binaries.spack.io/develop/developer-tools-x86_64_v3-linux-gnu
     - name: add cache
       shell: spack-bash {0}
       run: |
-        spack mirror add develop-developer-tools-x86_64_v3-linux-gnu https://binaries.spack.io/develop/developer-tools-x86_64_v3-linux-gnu
+        spack mirror add develop https://binaries.spack.io/develop
         spack config add "packages:all:target:[x86_64_v3]"
         spack buildcache keys --install --trust
 
