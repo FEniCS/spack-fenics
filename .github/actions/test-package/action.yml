@@ -4,7 +4,6 @@ inputs:
   spec:
     description: 'Spack spec syntax'
     required: true
-    default: "py-fenics-dolfinx"
     type: string
 runs:
   using: "composite"
@@ -25,20 +24,12 @@ runs:
     - name: Install gcc-13 (default)
       shell: sh
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
-      run: |
-        apt-get install -y g++-13 gcc-13 gfortran-13 build-essential
-        # echo "CC=gcc-13" >> $GITHUB_ENV
-        # echo "CXX=g++-13" >> $GITHUB_ENV
-        # echo "FC=gfortran-13" >> $GITHUB_ENV
+      run: apt-get install -y g++-13 gcc-13 gfortran-13 build-essential
 
     - name: Install clang-15
       shell: sh
       if: contains(inputs.spec, 'clang@15')
-      run: |
-        apt-get install -y clang-15 flang-15
-        # echo "CC=clang-15" >> $GITHUB_ENV
-        # echo "CXX=clang++-15" >> $GITHUB_ENV
-        # echo "FC=flang-15" >> $GITHUB_ENV
+      run: apt-get install -y clang-15 flang-15
 
     - name: Add repos
       shell: spack-bash {0}
@@ -53,8 +44,6 @@ runs:
         spack mirror add e4s-25.11 https://cache.e4s.io/25.11
         spack buildcache keys --install --trust
         spack config add "packages:all:target:[x86_64_v3]"
-        # spack config add "packages:all:os:[ubuntu]"
-        # spack config add "packages:all:os_version:[24.04]"
 
     - name: Compiler find
       shell: spack-bash {0}
