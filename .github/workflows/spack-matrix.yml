@@ -20,8 +20,7 @@ jobs:
         variant: ["", "build_type=Developer"]
         compiler: ["gcc@13", "clang@15"]
     steps:
-      - name: clone
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -42,8 +41,7 @@ jobs:
           - variant: "partitioners=kahip,parmetis,scotch"
             compiler: "clang@15"
     steps:
-      - name: clone
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -60,8 +58,7 @@ jobs:
         version: ["main", "0.10", "0.9", "0.8"]
         compiler: ["gcc@13", "clang@15"]
     steps:
-      - name: clone
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -77,8 +74,7 @@ jobs:
         version: ["main", "0.10", "0.9", "0.8"]
         compiler: ["gcc@13", "clang@15"]
     steps:
-      - name: clone
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -95,8 +91,7 @@ jobs:
         variant: ["", "build_type=Developer", "+petsc", "+slepc"]
         compiler: ["gcc@13", "clang@15"]
     steps:
-      - name: clone
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -111,8 +106,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
     steps:
-      - name: clone
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -127,8 +121,7 @@ jobs:
       matrix:
         version: ["main", "2025.2", "2025.1", "2024.2", "2024.1"]
     steps:
-      - name: clone
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package

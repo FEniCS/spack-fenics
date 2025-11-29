@@ -9,13 +9,13 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: dependencies
+    - name: Install dependencies
       shell: sh
       run: |
         apt-get -y update
         apt-get install -y bzip2 curl file git gzip make patch python3-minimal tar unzip xz-utils
 
-    - name: install gcc-13 (default)
+    - name: Install gcc-13 (default)
       shell: sh
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: |
@@ -24,7 +24,7 @@ runs:
         echo "CXX=g++-13" >> $GITHUB_ENV
         echo "FC=gfortran-13" >> $GITHUB_ENV
 
-    - name: install clang-15
+    - name: Install clang-15
       shell: sh
       if: contains(inputs.spec, 'clang@15')
       run: |
@@ -33,14 +33,14 @@ runs:
         echo "CXX=clang++-15" >> $GITHUB_ENV
         echo "FC=flang-15" >> $GITHUB_ENV
     
-    - name: set up spack
+    - name: Set up spack
       uses: spack/setup-spack@v2
       with:
         ref: develop
         color: true
         path: spack
 
-    - name: add repos
+    - name: Add repos
       shell: spack-bash {0}
       run: |
         spack repo add --name fenics $GITHUB_WORKSPACE/spack-fenics/spack_repo/fenics
@@ -55,22 +55,22 @@ runs:
     #     spack mirror add develop https://binaries.spack.io/develop
     #     spack buildcache keys --install --trust
 
-    - name: compiler find
+    - name: Compiler find
       shell: spack-bash {0}
       run: spack compiler find
 
-    - name: create env
+    - name: Create env
       shell: spack-bash {0}
       run: spack env create -d ./env
 
-    - name: add py-fenics-dolfinx
+    - name: Add spec
       shell: spack-bash {0}
       run: spack -e ./env add ${{ inputs.spec }}
 
-    - name: concretize
+    - name: Concretize
       shell: spack-bash {0}
       run: spack -e ./env concretize -j 4
     
-    - name: install
+    - name: Install
       shell: spack-bash {0}
       run: spack -e ./env install -j 4
