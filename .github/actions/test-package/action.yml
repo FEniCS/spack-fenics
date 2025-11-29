@@ -20,18 +20,18 @@ runs:
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: |
         apt-get install -y g++-13 gcc-13 gfortran-13 libstdc++-13-dev
-        echo "CC=gcc-13" >> $GITHUB_ENV
-        echo "CXX=g++-13" >> $GITHUB_ENV
-        echo "FC=gfortran-13" >> $GITHUB_ENV
+        # echo "CC=gcc-13" >> $GITHUB_ENV
+        # echo "CXX=g++-13" >> $GITHUB_ENV
+        # echo "FC=gfortran-13" >> $GITHUB_ENV
 
     - name: Install clang-15
       shell: sh
       if: contains(inputs.spec, 'clang@15')
       run: |
         apt-get install -y clang-15 flang-15
-        echo "CC=clang-15" >> $GITHUB_ENV
-        echo "CXX=clang++-15" >> $GITHUB_ENV
-        echo "FC=flang-15" >> $GITHUB_ENV
+        # echo "CC=clang-15" >> $GITHUB_ENV
+        # echo "CXX=clang++-15" >> $GITHUB_ENV
+        # echo "FC=flang-15" >> $GITHUB_ENV
     
     - name: Set up spack
       uses: spack/setup-spack@v2
@@ -57,7 +57,8 @@ runs:
 
     - name: Compiler find
       shell: spack-bash {0}
-      run: spack compiler find
+      # run: spack compiler find
+      run: spack compiler find /usr/bin
 
     - name: Create env
       shell: spack-bash {0}
