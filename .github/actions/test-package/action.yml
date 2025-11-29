@@ -58,7 +58,9 @@ runs:
     - name: Compiler find
       shell: spack-bash {0}
       # run: spack compiler find
-      run: spack compiler find /usr/bin
+      run: |
+        spack compiler find /usr/bin
+    
 
     - name: Create env
       shell: spack-bash {0}
@@ -66,7 +68,12 @@ runs:
 
     - name: Add spec
       shell: spack-bash {0}
-      run: spack -e ./env add ${{ inputs.spec }}
+      run: |
+        spack -e ./env add ${{ inputs.spec }}
+        echo $CC
+        echo $CXX
+        gcc-13 --version
+        gcc --version
 
     - name: Concretize
       shell: spack-bash {0}
