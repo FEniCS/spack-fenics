@@ -27,13 +27,13 @@ runs:
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: |
         apt-get install -y g++-13 gcc-13 gfortran-13
-        # echo "CC=gcc-13" >> $GITHUB_ENV
-        # echo "CXX=g++-13" >> $GITHUB_ENV
-        # echo "FC=gfortran-13" >> $GITHUB_ENV
+        echo "CC=gcc-13" >> $GITHUB_ENV
+        echo "CXX=g++-13" >> $GITHUB_ENV
+        echo "FC=gfortran-13" >> $GITHUB_ENV
 
 
     - name: Install gcc-13 (default)
-      shell: 
+      shell: spack-bash {0}
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: |
         echo "CC=gcc-13" >> $GITHUB_ENV
