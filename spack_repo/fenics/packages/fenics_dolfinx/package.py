@@ -36,7 +36,7 @@ class FenicsDolfinx(CMakePackage):
         values=("Debug", "Release", "RelWithDebInfo", "MinSizeRel", "Developer"),
     )
 
-    # Graph partitioner variants
+    # Variants
     variant(
         "partitioners",
         description="Graph partioning",
@@ -44,9 +44,16 @@ class FenicsDolfinx(CMakePackage):
         values=("kahip", "parmetis", "scotch"),
         multi=True,
     )
+    variant("slepc", default=False, description="SLEPc support")
+    variant("adios2", default=False, description="ADIOS2 support")
+    variant("petsc", default=False, description="PETSc support")
 
+
+    # Compiler dependencies
     depends_on("c", type="build")  # HDF5 dependency requires C in CMake config
     depends_on("cxx", type="build")
+    with when("+petsc"):
+        depends_on("fortran", type="build")
 
     conflicts("%gcc@:12", when="@0.10:")
 
@@ -54,10 +61,6 @@ class FenicsDolfinx(CMakePackage):
     depends_on("kahip@3.12:", when="partitioners=kahip")
     depends_on("parmetis", when="partitioners=parmetis")
     depends_on("scotch +mpi ~fortran", when="partitioners=scotch")
-
-    variant("slepc", default=False, description="SLEPc support")
-    variant("adios2", default=False, description="ADIOS2 support")
-    variant("petsc", default=False, description="PETSc support")
 
     depends_on("cmake@3.21:", when="@0.9:", type="build")
     depends_on("cmake@3.19:", when="@:0.8", type="build")
