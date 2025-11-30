@@ -60,7 +60,7 @@ class FenicsDolfinx(CMakePackage):
     # Graph partitioner dependencies
     depends_on("kahip@3.12:", when="partitioners=kahip")
     depends_on("parmetis", when="partitioners=parmetis")
-    depends_on("scotch +mpi ~fortran", when="partitioners=scotch")
+    depends_on("scotch+mpi", when="partitioners=scotch")
 
     depends_on("cmake@3.21:", when="@0.9:", type="build")
     depends_on("cmake@3.19:", when="@:0.8", type="build")
