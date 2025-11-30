@@ -53,7 +53,7 @@ class FenicsDolfinx(CMakePackage):
     # Graph partitioner dependencies
     depends_on("kahip@3.12:", when="partitioners=kahip")
     depends_on("parmetis", when="partitioners=parmetis")
-    depends_on("scotch+mpi", when="partitioners=scotch")
+    depends_on("scotch +mpi ~fortran", when="partitioners=scotch")
 
     variant("slepc", default=False, description="SLEPc support")
     variant("adios2", default=False, description="ADIOS2 support")
