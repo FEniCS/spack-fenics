@@ -18,7 +18,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["", "build_type=Developer"]
-        compiler: ["gcc@13", "clang@15"]
+        compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -35,11 +35,11 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["", "build_type=Developer", "partitioners=kahip,parmetis,scotch", "+petsc", "+slepc", "+adios2"]
-        compiler: ["gcc@13", "clang@15"]
+        compiler: ["gcc@13", "clang@18"]
         exclude:
           # kahip does not support clang
           - variant: "partitioners=kahip,parmetis,scotch"
-            compiler: "clang@15"
+            compiler: "clang@18"
     steps:
       - uses: actions/checkout@v5
         with:
@@ -56,7 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        compiler: ["gcc@13", "clang@15"]
+        compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -72,7 +72,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        compiler: ["gcc@13", "clang@15"]
+        compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -89,7 +89,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["", "build_type=Developer", "+petsc4py", "+slepc4py"]
-        compiler: ["gcc@13", "clang@15"]
+        compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
         with:
