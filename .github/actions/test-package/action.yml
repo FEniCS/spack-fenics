@@ -29,7 +29,7 @@ runs:
     - name: Install clang-15
       shell: sh
       if: contains(inputs.spec, 'clang@15')
-      run: apt-get install -y clang-15 flang-15
+      run: apt-get install -y clang-15 gfortran-13
 
     - name: Add repos
       shell: spack-bash {0}
