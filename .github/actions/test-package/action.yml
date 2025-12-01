@@ -63,9 +63,19 @@ runs:
     
     - name: Install
       shell: spack-bash {0}
-      run: spack -e ./env install -j 4
+      run: >
+        spack -e ./env install -j 4 
+        --log-format junit
+        --log-file log.xml
     
     - name: Upload log
+      if: success() || failure()
       uses: actions/upload-artifact@v4
       with:
-        path: ./spack/spack-build-out.txt
+        path: log.xml
+
+    - name: Publish Test Report
+      if: success() || failure()
+      uses: mikepenz/action-junit-report@v5
+      with:
+        report_paths: log.xml
