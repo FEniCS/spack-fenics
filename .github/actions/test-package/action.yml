@@ -63,4 +63,4 @@ runs:
     
     - name: Install
       shell: spack-bash {0}
-      run: spack -e ./env install -j 4
+      run: spack -e ./env install -j 4 --show-log-on-error
