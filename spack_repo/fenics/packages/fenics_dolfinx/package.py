@@ -69,9 +69,9 @@ class FenicsDolfinx(CMakePackage):
     depends_on("pugixml")
     depends_on("spdlog", when="@0.9:")
 
-    depends_on("petsc +mpi +shared ~fortran ~fortran-bindings", when="+petsc")
+    depends_on("petsc +mpi +shared ~fortran", when="+petsc")
     with when("+slepc"):
-        depends_on("petsc +mpi +shared ~fortran ~fortran-bindings")
+        depends_on("petsc +mpi +shared ~fortran")
         depends_on("slepc")
 
     depends_on("adios2@2.8.1:+mpi", when="@0.9: +adios2")
