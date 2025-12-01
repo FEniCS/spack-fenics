@@ -36,7 +36,7 @@ jobs:
         version: ["main"] # , "0.10", "0.9", "0.8"]
         variant: ["", "build_type=Developer", "partitioners=kahip,parmetis,scotch", "+petsc", "+slepc", "+adios2"]
         # compiler: ["gcc@13", "clang@15"]
-        compiler: ["clang@15"]
+        compiler: ["clang@15 cxxstdlib=libc++"]
         exclude:
           # kahip does not support clang
           - variant: "partitioners=kahip,parmetis,scotch"
