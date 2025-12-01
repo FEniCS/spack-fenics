@@ -63,4 +63,9 @@ runs:
     
     - name: Install
       shell: spack-bash {0}
-      run: spack -e ./env install -j 4 --show-log-on-error
+      run: spack -e ./env install -j 4 --log-file log.txt
+    
+    - name: Upload log
+      uses: actions/upload-artifact@v4
+      with:
+        path: log.txt
