@@ -24,12 +24,12 @@ runs:
     - name: Install gcc-13 (default)
       shell: sh
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
-      run: apt-get install -y g++-13 gcc-13 build-essential
+      run: apt-get install -y g++-13 gcc-13 gfortran-13 build-essential
 
     - name: Install clang-15
       shell: sh
       if: contains(inputs.spec, 'clang@15')
-      run: apt-get install -y clang-15
+      run: apt-get install -y clang-15 gfortran-13
 
     - name: Add repos
       shell: spack-bash {0}
