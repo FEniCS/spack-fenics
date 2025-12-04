@@ -14,7 +14,6 @@ class FenicsDolfinx(CMakePackage):
     git = "https://github.com/FEniCS/dolfinx.git"
     url = "https://github.com/FEniCS/dolfinx/archive/v0.1.0.tar.gz"
     maintainers("chrisrichardson", "garth-wells", "nate-sime", "jhale")
-
     license("LGPL-3.0-or-later")
 
     version("main", branch="main", no_cache=True)
@@ -27,6 +26,8 @@ class FenicsDolfinx(CMakePackage):
     with default_args(deprecated=True):
         version("0.7.2", sha256="7d9ce1338ce66580593b376327f23ac464a4ce89ef63c105efc1a38e5eae5c0b")
         version("0.6.0", sha256="eb8ac2bb2f032b0d393977993e1ab6b4101a84d54023a67206e3eac1a8d79b80")
+
+    patch("0.8-boost-filesystem.patch", when="@0.8")
 
     # CMake build types
     variant(
@@ -80,9 +81,9 @@ class FenicsDolfinx(CMakePackage):
     # This will need to be opened up in the future if we move away from locked
     # releases
     for ver in ("main", "0.10", "0.9", "0.8", "0.7", "0.6"):
-        depends_on(f"fenics-ufcx@:{ver}", when=f"@:{ver}")
-        depends_on(f"fenics-basix@:{ver}", when=f"@:{ver}")
-        depends_on(f"py-fenics-ffcx@:{ver}", when=f"@:{ver}", type="test")
+        depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
+        depends_on(f"fenics-basix@{ver}", when=f"@{ver}")
+        depends_on(f"py-fenics-ffcx@{ver}", when=f"@{ver}", type="test")
     depends_on("catch2", type="test")
 
     root_cmakelists_dir = "cpp"

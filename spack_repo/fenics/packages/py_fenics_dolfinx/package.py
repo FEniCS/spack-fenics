@@ -58,11 +58,11 @@ class PyFenicsDolfinx(PythonPackage):
         depends_on(f"fenics-dolfinx@{ver}", when=f"@{ver}")
 
     for ver in ["main", "0.10", "0.9", "0.8"]:
-        depends_on(f"py-fenics-basix@:{ver}", type=("build", "run"), when=f"@:{ver}")
+        depends_on(f"py-fenics-basix@{ver}", type=("build", "run"), when=f"@{ver}")
 
     for ver in ["main", "0.10", "0.9", "0.8", "0.7", "0.6"]:
-        depends_on(f"fenics-basix@:{ver}", type=("build", "link"), when=f"@:{ver}")
-        depends_on(f"py-fenics-ffcx@:{ver}", type=("build", "link"), when=f"@:{ver}")
+        depends_on(f"fenics-basix@{ver}", type=("build", "link"), when=f"@{ver}")
+        depends_on(f"py-fenics-ffcx@{ver}", type=("build", "link"), when=f"@{ver}")
 
     for ufl_ver, ver in [
         ("main", "main"),
@@ -72,11 +72,13 @@ class PyFenicsDolfinx(PythonPackage):
         ("2023.2", "0.7"),
         ("2023.1", "0.6"),
     ]:
-        depends_on(f"py-fenics-ufl@:{ufl_ver}", type=("build", "run"), when=f"@:{ver}")
+        depends_on(f"py-fenics-ufl@{ufl_ver}", type=("build", "run"), when=f"@{ver}")
 
     depends_on("py-numpy@1.21:", type=("build", "run"))
     depends_on("py-mpi4py", type=("build", "run"))
 
+    # py-petsc4py is mandatory for version 0.8 and lower
+    conflicts("~petsc4py", when="@:0.8", msg="+petsc4py is required for versions 0.8 and lower")
     with when("+petsc4py"):
         depends_on("fenics-dolfinx +petsc")
         depends_on("py-petsc4py", type=("build", "run"))
