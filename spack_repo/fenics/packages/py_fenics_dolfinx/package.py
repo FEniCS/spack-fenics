@@ -64,6 +64,7 @@ class PyFenicsDolfinx(PythonPackage):
 
     depends_on("py-fenics-ufl@main", when="@main")
     for ufl_ver, ver in [
+        ("main", "main"),
         ("2025.2", "0.10"),
         ("2024.2", "0.9"),
         ("2024.1", "0.8"),
