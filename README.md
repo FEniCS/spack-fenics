@@ -49,6 +49,14 @@ Running `spack spec -N fenics-dolfinx@0.9` should give output like:
 
 where `fenics.fenics-dolfinx` implies the use of the `fenics` repository.
 
+## Maintenance commitment
+
+We aim to keep the last three `x` versions `0.x.*` of `py-fenics-dolfinx`
+building with PETSc, SLEPc, ADIOS2, Parmetis, SCOTCH and KaHIP support using
+Ubuntu LTS GCC and clang. As of 12/2025 we do not run unit tests - users should
+execute these themselves and assess working/non-working functionality on their
+systems.
+
 ## Uses
 
 1. Releasing Spack packages to users without waiting for PRs to be merged into
