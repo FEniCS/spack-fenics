@@ -78,9 +78,7 @@ class PyFenicsDolfinx(PythonPackage):
     depends_on("py-mpi4py", type=("build", "run"))
 
     # py-petsc4py was mandatory for version 0.8 and lower
-    depends_on("fenics-dolfinx +petsc", when="@:0.8")
-    depends_on("py-petsc4py", type=("build", "run"), when="@:0.8")
-    # and then became a variant
+    conflicts("~petsc4py", when="@:0.8", msg="+petsc4py is required for versions 0.8 and lower")
     with when("+petsc4py"):
         depends_on("fenics-dolfinx +petsc")
         depends_on("py-petsc4py", type=("build", "run"))
