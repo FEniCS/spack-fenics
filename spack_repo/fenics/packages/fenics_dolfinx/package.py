@@ -49,7 +49,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("c", type="build")  # HDF5 dependency requires C in CMake config
     depends_on("cxx", type="build")
 
-    conflicts("%gcc@:13", when="@0.10:")
+    conflicts("%gcc@:12", when="@0.10:")
 
     # Graph partitioner dependencies
     depends_on("kahip@3.12:", when="partitioners=kahip")
@@ -59,6 +59,8 @@ class FenicsDolfinx(CMakePackage):
     variant("slepc", default=False, description="SLEPc support")
     variant("adios2", default=False, description="ADIOS2 support")
     variant("petsc", default=False, description="PETSc support")
+
+    conflicts("~petsc", when="+slepc", msg="+slepc requires +petsc")
 
     depends_on("cmake@3.21:", when="@0.9:", type="build")
     depends_on("cmake@3.19:", when="@:0.8", type="build")
@@ -78,8 +80,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("adios2@:2.10", when="@:0.9 +adios2")
     depends_on("adios2@2.8.1:", when="@0.9: +adios2")
     depends_on("adios2+mpi", when="+adios2")
-    # This will need to be opened up in the future if we move away from locked
-    # releases
+
     for ver in ("main", "0.10", "0.9", "0.8", "0.7", "0.6"):
         depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
         depends_on(f"fenics-basix@{ver}", when=f"@{ver}")

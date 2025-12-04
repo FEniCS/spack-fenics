@@ -1,0 +1,76 @@
+name: test-spack
+description: 'Builds a spack package from given spack-spec'
+inputs:
+  spec:
+    description: 'Spack spec syntax'
+    required: true
+    type: string
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      shell: sh
+      run: |
+        apt-get -y update
+        apt-get install -y bzip2 curl file git gzip make patch python3-minimal tar unzip xz-utils
+
+    - name: Set up spack
+      uses: spack/setup-spack@v2
+      with:
+        ref: develop
+        color: true
+        path: spack
+
+    - name: Install gcc-13 (default)
+      shell: sh
+      if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
+      run: apt-get install -y g++ gcc gfortran build-essential
+
+    - name: Install clang-18
+      shell: sh
+      if: contains(inputs.spec, 'clang@18')
+      run: apt-get install -y clang-18 gfortran
+
+    - name: Add repos
+      shell: spack-bash {0}
+      run: |
+        spack repo add --name fenics $GITHUB_WORKSPACE/spack-fenics/spack_repo/fenics
+        spack config get repos
+        spack repo list
+
+    - name: add cache
+      shell: spack-bash {0}
+      run: |
+        spack mirror add e4s-25.11 https://cache.e4s.io/25.11
+        spack buildcache keys --install --trust
+        spack config add "packages:all:target:[x86_64_v3]"
+
+    - name: Compiler find
+      shell: spack-bash {0}
+      run: spack compiler find
+
+    - name: Create env
+      shell: spack-bash {0}
+      run: spack env create -d ./env
+
+    - name: Add spec
+      shell: spack-bash {0}
+      run: spack -e ./env add ${{ inputs.spec }}
+
+    - name: Concretize
+      shell: spack-bash {0}
+      run: spack -e ./env concretize -j 4
+    
+    - name: Install
+      shell: spack-bash {0}
+      run: >
+        spack -e ./env install -j 4 
+        --log-format junit
+        --log-file log.xml
+    
+    - name: Upload log
+      if: success() || failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.spec }}-log
+        path: log.xml
