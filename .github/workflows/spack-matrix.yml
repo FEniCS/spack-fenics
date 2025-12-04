@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["", "build_type=Developer"]
+        variant: ["build_type=Developer"]
         compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
@@ -34,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["", "build_type=Developer", "partitioners=kahip,parmetis,scotch", "+petsc", "+petsc +slepc", "+adios2"]
+        variant: ["build_type=Developer", "partitioners=kahip,parmetis,scotch", "+petsc +slepc +adios2"]
         compiler: ["gcc@13", "clang@18"]
         exclude:
           # kahip does not support clang
@@ -88,7 +88,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["", "build_type=Developer", "+petsc4py", "+slepc4py"]
+        variant: ["build_type=Developer", "+petsc4py +slepc4py"]
         compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
