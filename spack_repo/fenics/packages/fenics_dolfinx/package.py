@@ -80,9 +80,9 @@ class FenicsDolfinx(CMakePackage):
     # This will need to be opened up in the future if we move away from locked
     # releases
     for ver in ("main", "0.10", "0.9", "0.8", "0.7", "0.6"):
-        depends_on(f"fenics-ufcx@:{ver}", when=f"@:{ver}")
-        depends_on(f"fenics-basix@:{ver}", when=f"@:{ver}")
-        depends_on(f"py-fenics-ffcx@:{ver}", when=f"@:{ver}", type="test")
+        depends_on(f"fenics-ufcx@:{ver}:{ver}", when=f"@:{ver}")
+        depends_on(f"fenics-basix@:{ver}:{ver}", when=f"@:{ver}")
+        depends_on(f"py-fenics-ffcx@:{ver}:{ver}", when=f"@:{ver}", type="test")
     depends_on("catch2", type="test")
 
     root_cmakelists_dir = "cpp"
