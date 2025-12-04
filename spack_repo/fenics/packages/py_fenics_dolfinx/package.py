@@ -87,7 +87,7 @@ class PyFenicsDolfinx(PythonPackage):
         depends_on("py-petsc4py", type=("build", "run"))
         depends_on("py-slepc4py", type=("build", "run"))
 
-    depends_on("py-cffi@:1.16", type=("build", "run"))
+    depends_on("py-cffi", type=("build", "run"))
 
     depends_on("py-nanobind@2.5:", when="@0.10:", type="build")
     depends_on("py-nanobind@2:", when="@0.9:", type="build")
