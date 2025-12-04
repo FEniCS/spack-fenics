@@ -75,7 +75,7 @@ class FenicsDolfinx(CMakePackage):
         depends_on("petsc+mpi+shared")
         depends_on("slepc")
 
-    depends_on("adios2@2.8.1:+mpi", when="@0.10: +adios2")
+    depends_on("adios2@2.8.1:+mpi", when="@0.9: +adios2")
     depends_on("adios2+mpi", when="+adios2")
     # This will need to be opened up in the future if we move away from locked
     # releases
