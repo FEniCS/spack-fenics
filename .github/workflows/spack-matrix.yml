@@ -2,15 +2,38 @@ name: 🤖
 
 on:
   push:
-  #   branches:
-  #     - main
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
   schedule:
     - cron: "0 2 * * MON" # weekly, mondays 2am
 
 jobs:
+  style-check:
+    name: ✨
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+      - uses: actions/checkout@v5
+        with:
+          repository: spack/spack
+          ref: develop
+          path: spack-core
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.github/workflows/requirements/style/requirements.txt
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.flake8
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.ci/style_check.sh
+      - run: pip install -r requirements.txt
+      - run: chmod +x style_check.sh
+      - run: ./style_check.sh HEAD^
+
   fenics-basix:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -28,6 +51,7 @@ jobs:
           spec: fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
   fenics-dolfinx:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -50,6 +74,7 @@ jobs:
 
 
   fenics-ufcx:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -66,6 +91,7 @@ jobs:
           spec: fenics-ufcx@${{ matrix.version }} %${{ matrix.compiler }}
 
   py-fenics-basix:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -82,6 +108,7 @@ jobs:
           spec: py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }}
 
   py-fenics-dolfinx:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -99,6 +126,7 @@ jobs:
           spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
   py-fenics-ffcx:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -114,6 +142,7 @@ jobs:
           spec: py-fenics-ffcx@${{ matrix.version }}
 
   py-fenics-ufl:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
