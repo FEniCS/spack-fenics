@@ -68,6 +68,10 @@ runs:
         --log-format junit
         --log-file log.xml
     
+    - name: Test
+      shell: spack-bash {0}
+      run: spack test run ${{ inputs.spec }}
+
     - name: Upload log
       if: success() || failure()
       uses: actions/upload-artifact@v4
