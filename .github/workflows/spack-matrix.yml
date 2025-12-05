@@ -99,7 +99,7 @@ jobs:
   #         spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
   py-fenics-ffcx:
-    needs: style-check
+    # needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
