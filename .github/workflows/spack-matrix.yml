@@ -133,5 +133,6 @@ jobs:
         run: |
           spack env activate ./env
           spack install --add py-pytest
+          spack stage py-fenics-ufl@${{ matrix.version }}
           spack cd py-fenics-ufl@${{ matrix.version }}
           pytest test/
