@@ -109,7 +109,7 @@ jobs:
           spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
       # workaround for https://github.com/spack/spack/issues/29447
       - name: Run tests (> 0.8)
-        if: ${{ matrix.version != "0.8" }} && contains(matrix.variant, '+ufl')
+        if: ${{ matrix.version != '0.8' }} && contains(matrix.variant, '+ufl')
         shell: spack-bash {0}
         run: |
           spack env activate ./env
@@ -119,7 +119,7 @@ jobs:
           pytest test/
       # 0.8 holds one broken test case
       - name: Run tests (0.8)
-        if: ${{ matrix.version == "0.8" }} && contains(matrix.variant, '+ufl')
+        if: ${{ matrix.version == '0.8' }} && contains(matrix.variant, '+ufl')
         shell: spack-bash {0}
         run: |
           spack env activate ./env
