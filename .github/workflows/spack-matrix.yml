@@ -117,7 +117,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest
+          spack install --add py-pytest py-sympy
           spack stage py-fenics-ffcx@${{ matrix.version }}
           spack cd py-fenics-ffcx@${{ matrix.version }}
           pytest test/
