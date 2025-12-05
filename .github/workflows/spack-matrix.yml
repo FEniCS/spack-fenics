@@ -102,10 +102,10 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest
+          spack install --add py-pytest py-pytest-xdist py-scipy
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest python/test/unit
+          pytest python/test/unit -n auto
 
   # py-fenics-ffcx:
   #   runs-on: ubuntu-latest
