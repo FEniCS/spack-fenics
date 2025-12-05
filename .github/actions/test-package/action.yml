@@ -70,11 +70,17 @@ runs:
     
     - name: Test
       shell: spack-bash {0}
-      run: spack test run ${{ inputs.spec }}
+      run: >
+        spack test run ${{ inputs.spec }}
+        --log-format junit
+        --log-file log-test.xml
+
 
     - name: Upload log
       if: success() || failure()
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.spec }}-log
-        path: log.xml
+        path: |
+          log.xml
+          log-test.xml
