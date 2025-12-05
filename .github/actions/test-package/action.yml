@@ -12,7 +12,7 @@ runs:
       shell: sh
       run: |
         apt-get -y update
-        apt-get install -y bzip2 curl file git gzip make patch python3-minimal tar unzip xz-utils
+        apt-get install -y bzip2 curl file git gzip make patch python3-minimal tar unzip xz-utils build-essential
 
     - name: Set up spack
       uses: spack/setup-spack@v2
