@@ -65,15 +65,16 @@ runs:
       shell: spack-bash {0}
       run: >
         spack -e ./env install -j 4 
+        --test=root
         --log-format junit
         --log-file log.xml
     
-    - name: Test
-      shell: spack-bash {0}
-      run: >
-        spack test run ${{ inputs.spec }}
-        --log-format junit
-        --log-file log-test.xml
+    # - name: Test
+      # shell: spack-bash {0}
+      # run: >
+      #   spack test run ${{ inputs.spec }}
+      #   --log-format junit
+      #   --log-file log-test.xml
 
 
     - name: Upload log
@@ -81,6 +82,4 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.spec }}-log
-        path: |
-          log.xml
-          log-test.xml
+        path: log.xml
