@@ -82,4 +82,4 @@ class PyFenicsUfl(PythonPackage):
     @on_package_attributes(run_tests=True)
     def check_build(self):
         with working_dir(self.stage.source_path):
-            python("-m", "pytest")
+            python("-m", "pytest", "test/")
