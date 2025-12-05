@@ -64,12 +64,9 @@ runs:
     - name: Install
       shell: spack-bash {0}
       # workaround: https://github.com/spack/spack/issues/29447#issuecomment-1164595616
-      run: >
+      run: |
         spack env activate ./env --temp
-        spack install -j 4
-        --test=root
-        --log-format junit
-        --log-file log.xml
+        spack install -j 4 --test=root --log-format junit --log-file log.xml
     
     # - name: Test
       # shell: spack-bash {0}
