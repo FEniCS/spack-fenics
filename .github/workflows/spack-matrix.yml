@@ -2,8 +2,8 @@ name: 🤖
 
 on:
   push:
-  #   branches:
-  #     - main
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
   schedule:
@@ -129,7 +129,8 @@ jobs:
           spec: py-fenics-ufl@${{ matrix.version }}
       
       # workaround for https://github.com/spack/spack/issues/29447
-      - shell: spack-bash {0}
+      - name: Run tests
+        shell: spack-bash {0}
         run: |
           spack env activate ./env
           spack install --add py-pytest
