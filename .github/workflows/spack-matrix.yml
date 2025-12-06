@@ -2,8 +2,8 @@ name: 🤖
 
 on:
   push:
-    # branches:
-    #   - main
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
   schedule:
@@ -82,6 +82,7 @@ jobs:
   #         spec: py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }}
 
   py-fenics-dolfinx:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
