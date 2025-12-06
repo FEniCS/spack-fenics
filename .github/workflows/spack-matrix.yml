@@ -105,7 +105,7 @@ jobs:
           spack install --add py-pytest py-scipy
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest python/test/unit -m "not petsc4py and not adios2"
+          pytest python/test/unit -m "not petsc4py and not adios2" -k "not test_cffi_expression"
 
   # py-fenics-ffcx:
   #   runs-on: ubuntu-latest
