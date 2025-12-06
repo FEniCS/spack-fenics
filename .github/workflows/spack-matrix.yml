@@ -146,6 +146,7 @@ jobs:
           pytest python/test/unit -m "not petsc4py and not adios2" -k "not test_cffi_expression"
 
   py-fenics-ffcx:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -161,6 +162,7 @@ jobs:
           spec: py-fenics-ffcx@${{ matrix.version }}
 
   py-fenics-ufl:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
