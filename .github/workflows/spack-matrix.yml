@@ -33,6 +33,7 @@ jobs:
       - run: ./style_check.sh HEAD^
 
   fenics-basix:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -50,6 +51,7 @@ jobs:
           spec: fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
   fenics-dolfinx:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -71,6 +73,7 @@ jobs:
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
   fenics-ufcx:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
@@ -87,6 +90,7 @@ jobs:
           spec: fenics-ufcx@${{ matrix.version }} %${{ matrix.compiler }}
 
   py-fenics-basix:
+    needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     strategy:
