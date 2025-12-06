@@ -126,7 +126,7 @@ jobs:
           spack install --add py-pytest py-sympy
           spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest test/ -k "not test/test_create.py::test_all_elements_included"
+          pytest test/ -k "not test_all_elements_included" 
 
   py-fenics-dolfinx:
     needs: style-check
