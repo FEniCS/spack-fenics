@@ -59,19 +59,8 @@ class PyFenicsDolfinx(PythonPackage):
 
     for ver in ["main", "0.10", "0.9", "0.8", "0.7", "0.6"]:
         depends_on(f"fenics-basix@{ver}", type=("build", "link"), when=f"@{ver}")
-        depends_on(f"py-fenics-basix@{ver}", type=("build", "run"), when=f"@{ver}")
+        depends_on(f"py-fenics-basix@{ver} +ufl", type=("build", "run"), when=f"@{ver}")
         depends_on(f"py-fenics-ffcx@{ver}", type=("build", "run"), when=f"@{ver}")
-
-    depends_on("py-fenics-ufl@main", when="@main")
-    for ufl_ver, ver in [
-        ("main", "main"),
-        ("2025.2", "0.10"),
-        ("2024.2", "0.9"),
-        ("2024.1", "0.8"),
-        ("2023.2", "0.7"),
-        ("2023.1", "0.6"),
-    ]:
-        depends_on(f"py-fenics-ufl@{ufl_ver}", type=("build", "run"), when=f"@{ver}")
 
     depends_on("py-numpy@1.21:", type=("build", "run"))
     depends_on("py-mpi4py", type=("build", "run"))
