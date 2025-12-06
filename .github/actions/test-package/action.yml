@@ -67,7 +67,7 @@ runs:
         spack -e ./env install -j 4 
         --log-format junit
         --log-file log.xml
-    
+
     - name: Upload log
       if: success() || failure()
       uses: actions/upload-artifact@v4

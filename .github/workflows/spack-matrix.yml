@@ -156,3 +156,13 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           spec: py-fenics-ufl@${{ matrix.version }}
+      
+      # workaround for https://github.com/spack/spack/issues/29447
+      - name: Run tests
+        shell: spack-bash {0}
+        run: |
+          spack env activate ./env
+          spack install --add py-pytest
+          spack stage py-fenics-ufl@${{ matrix.version }}
+          spack cd py-fenics-ufl@${{ matrix.version }}
+          pytest test/
