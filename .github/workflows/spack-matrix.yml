@@ -139,10 +139,17 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest py-sympy py-numba py-pygraphviz
+          spack install --add py-pytest py-sympy py-numba py-pygraphviz --log-format junit --log-file test-dep-log.xml
           spack stage py-fenics-ffcx@${{ matrix.version }}
           spack cd py-fenics-ffcx@${{ matrix.version }}
           pytest test/
+      
+      - name: Upload log
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.spec }}-test-dep-log
+          path: test-dep-log.xml
 
   # py-fenics-ufl:
   #   needs: style-check
