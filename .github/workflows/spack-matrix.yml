@@ -10,6 +10,28 @@ on:
     - cron: "0 2 * * MON" # weekly, mondays 2am
 
 jobs:
+  style-check:
+    name: ✨
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+      - uses: actions/checkout@v5
+        with:
+          repository: spack/spack
+          ref: develop
+          path: spack-core
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.github/workflows/requirements/style/requirements.txt
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.flake8
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.ci/style_check.sh
+      - run: pip install -r requirements.txt
+      - run: chmod +x style_check.sh
+      - run: ./style_check.sh HEAD^
+
   # fenics-basix:
   #   runs-on: ubuntu-latest
   #   container: ubuntu:24.04
