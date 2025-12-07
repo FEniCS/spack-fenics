@@ -117,7 +117,12 @@ jobs:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["build_type=Developer", "+petsc4py +slepc4py"]
         compiler: ["gcc@13", "clang@18"]
-        py-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        py-version: ["3.13"]
+        include:
+          # Run python matrix on main x build_type=Developer only
+          - version: "main"
+            variant: "build_type=Developer"
+            py-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v5
         with:
