@@ -122,7 +122,21 @@ jobs:
           # Run python matrix on main x build_type=Developer only
           - version: "main"
             variant: "build_type=Developer"
-            py-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+            compiler: "gcc@13"
+            py-version: "3.10"
+          - version: "main"
+            variant: "build_type=Developer"
+            compiler: "gcc@13"
+            py-version: "3.11"
+          - version: "main"
+            variant: "build_type=Developer"
+            compiler: "gcc@13"
+            py-version: "3.12"
+          # 3.13 is covered by (full) matrix
+          - version: "main"
+            variant: "build_type=Developer"
+            compiler: "gcc@13"
+            py-version: "3.14"
     steps:
       - uses: actions/checkout@v5
         with:
