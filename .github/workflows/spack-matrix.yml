@@ -97,6 +97,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
+        variant: ["", "+ufl"]
         compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
@@ -104,7 +105,27 @@ jobs:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }}
+          spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+      # workaround for https://github.com/spack/spack/issues/29447
+      - name: Run tests (> 0.8)
+        if: ${{ matrix.version != '0.8' && contains(matrix.variant, '+ufl') }}
+        shell: spack-bash {0}
+        run: |
+          spack env activate ./env
+          spack install --add py-pytest py-sympy
+          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          pytest test/
+      # 0.8 holds one broken test case
+      - name: Run tests (0.8)
+        if: ${{ matrix.version == '0.8' && contains(matrix.variant, '+ufl') }}
+        shell: spack-bash {0}
+        run: |
+          spack env activate ./env
+          spack install --add py-pytest py-sympy
+          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          pytest test/ -k "not test_all_elements_included" 
 
   py-fenics-dolfinx:
     needs: style-check
