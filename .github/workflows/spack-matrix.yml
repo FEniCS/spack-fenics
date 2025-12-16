@@ -72,7 +72,6 @@ jobs:
         with:
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
-
   fenics-ufcx:
     needs: style-check
     runs-on: ubuntu-latest
@@ -140,6 +139,18 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           spec: py-fenics-ffcx@${{ matrix.version }}
+      # workaround for https://github.com/spack/spack/issues/29447
+      # we do not run numba based tests here due to disk-space constraints
+      # 0.8 broken
+      - name: Run tests
+        if: ${{ matrix.version != '0.8' }}
+        shell: spack-bash {0}
+        run: |
+          spack env activate ./env
+          spack install --add py-pytest py-sympy
+          spack stage py-fenics-ffcx@${{ matrix.version }}
+          spack cd py-fenics-ffcx@${{ matrix.version }}
+          pytest test/
 
   py-fenics-ufl:
     needs: style-check
