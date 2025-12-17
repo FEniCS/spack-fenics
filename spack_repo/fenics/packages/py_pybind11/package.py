@@ -63,6 +63,7 @@ class PyPybind11(CMakePackage, PythonExtension):
     version("2.1.1", sha256="f2c6874f1ea5b4ad4ffffe352413f7d2cd1a49f9050940805c2a082348621540")
     version("2.1.0", sha256="2860f2b8d0c9f65f0698289a161385f59d099b7ead1bf64e8993c486f2b93ee0")
 
+    depends_on("c", type="build")
     depends_on("cxx", type="build")
 
     with when("@3:"):
