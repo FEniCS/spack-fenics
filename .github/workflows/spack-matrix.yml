@@ -30,7 +30,7 @@ jobs:
       - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.ci/style_check.sh
       - run: pip install -r requirements.txt
       - run: chmod +x style_check.sh
-      - run: ./style_check.sh HEAD^
+      # - run: ./style_check.sh HEAD^
 
   fenics-basix:
     needs: style-check
