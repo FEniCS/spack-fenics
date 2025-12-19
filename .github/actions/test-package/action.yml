@@ -23,12 +23,12 @@ runs:
 
     - name: Install gcc-13 (default)
       shell: sh
-      if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
+      # if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: apt-get install -y g++ gcc gfortran build-essential
 
     - name: Install clang-18
       shell: sh
-      if: contains(inputs.spec, 'clang@18')
+      # if: contains(inputs.spec, 'clang@18')
       run: apt-get install -y clang-18 gfortran
 
     - name: Add repos
