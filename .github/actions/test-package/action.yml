@@ -1,6 +1,11 @@
 name: test-spack
 description: 'Builds a spack package from given spack-spec'
 inputs:
+  python-version:
+    description: 'Python version'
+    required: false
+    type: string
+    default: '3.10'
   spec:
     description: 'Spack spec syntax'
     required: true
@@ -13,6 +18,10 @@ runs:
       run: |
         apt-get -y update
         apt-get install -y bzip2 curl file git gzip make patch python3-minimal tar unzip xz-utils
+
+    - uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
 
     - name: Set up spack
       uses: spack/setup-spack@v2
