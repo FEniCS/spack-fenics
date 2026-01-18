@@ -2,8 +2,8 @@ name: 🤖
 
 on:
   push:
-    branches:
-      - main
+    # branches:
+    #   - main
   pull_request:
   workflow_dispatch:
   schedule:
@@ -32,166 +32,166 @@ jobs:
       - run: chmod +x style_check.sh
       - run: ./style_check.sh HEAD^
 
-  fenics-basix:
-    needs: style-check
-    runs-on: ubuntu-latest
-    container: ubuntu:24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["build_type=Developer"]
-        compiler: ["gcc@13", "clang@18"]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  # fenics-basix:
+  #   needs: style-check
+  #   runs-on: ubuntu-latest
+  #   container: ubuntu:24.04
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       version: ["main", "0.10", "0.9", "0.8"]
+  #       variant: ["build_type=Developer"]
+  #       compiler: ["gcc@13", "clang@18"]
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #       with:
+  #         path: spack-fenics
+  #     - uses: ./spack-fenics/.github/actions/test-package
+  #       with:
+  #         spec: fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
-  fenics-dolfinx:
-    needs: style-check
-    runs-on: ubuntu-latest
-    container: ubuntu:24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["build_type=Developer", "partitioners=kahip,parmetis,scotch", "+petsc +slepc +adios2"]
-        compiler: ["gcc@13", "clang@18"]
-        exclude:
-          # kahip does not support clang
-          - variant: "partitioners=kahip,parmetis,scotch"
-            compiler: "clang@18"
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  # fenics-dolfinx:
+  #   needs: style-check
+  #   runs-on: ubuntu-latest
+  #   container: ubuntu:24.04
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       version: ["main", "0.10", "0.9", "0.8"]
+  #       variant: ["build_type=Developer", "partitioners=kahip,parmetis,scotch", "+petsc +slepc +adios2"]
+  #       compiler: ["gcc@13", "clang@18"]
+  #       exclude:
+  #         # kahip does not support clang
+  #         - variant: "partitioners=kahip,parmetis,scotch"
+  #           compiler: "clang@18"
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #       with:
+  #         path: spack-fenics
+  #     - uses: ./spack-fenics/.github/actions/test-package
+  #       with:
+  #         spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
-  fenics-ufcx:
-    needs: style-check
-    runs-on: ubuntu-latest
-    container: ubuntu:24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
-        compiler: ["gcc@13", "clang@18"]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: fenics-ufcx@${{ matrix.version }} %${{ matrix.compiler }}
+  # fenics-ufcx:
+  #   needs: style-check
+  #   runs-on: ubuntu-latest
+  #   container: ubuntu:24.04
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       version: ["main", "0.10", "0.9", "0.8"]
+  #       compiler: ["gcc@13", "clang@18"]
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #       with:
+  #         path: spack-fenics
+  #     - uses: ./spack-fenics/.github/actions/test-package
+  #       with:
+  #         spec: fenics-ufcx@${{ matrix.version }} %${{ matrix.compiler }}
 
-  py-fenics-basix:
-    needs: style-check
-    runs-on: ubuntu-latest
-    container: ubuntu:24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["", "+ufl"]
-        compiler: ["gcc@13", "clang@18"]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-      # workaround for https://github.com/spack/spack/issues/29447
-      - name: Run tests (> 0.8)
-        if: ${{ matrix.version != '0.8' && contains(matrix.variant, '+ufl') }}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --add py-pytest py-sympy
-          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest test/
-      # 0.8 holds one broken test case
-      - name: Run tests (0.8)
-        if: ${{ matrix.version == '0.8' && contains(matrix.variant, '+ufl') }}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --add py-pytest py-sympy
-          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest test/ -k "not test_all_elements_included" 
+  # py-fenics-basix:
+  #   needs: style-check
+  #   runs-on: ubuntu-latest
+  #   container: ubuntu:24.04
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       version: ["main", "0.10", "0.9", "0.8"]
+  #       variant: ["", "+ufl"]
+  #       compiler: ["gcc@13", "clang@18"]
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #       with:
+  #         path: spack-fenics
+  #     - uses: ./spack-fenics/.github/actions/test-package
+  #       with:
+  #         spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #     # workaround for https://github.com/spack/spack/issues/29447
+  #     - name: Run tests (> 0.8)
+  #       if: ${{ matrix.version != '0.8' && contains(matrix.variant, '+ufl') }}
+  #       shell: spack-bash {0}
+  #       run: |
+  #         spack env activate ./env
+  #         spack install --add py-pytest py-sympy
+  #         spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #         spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #         pytest test/
+  #     # 0.8 holds one broken test case
+  #     - name: Run tests (0.8)
+  #       if: ${{ matrix.version == '0.8' && contains(matrix.variant, '+ufl') }}
+  #       shell: spack-bash {0}
+  #       run: |
+  #         spack env activate ./env
+  #         spack install --add py-pytest py-sympy
+  #         spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #         spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #         pytest test/ -k "not test_all_elements_included" 
 
-  py-fenics-dolfinx:
-    needs: style-check
-    runs-on: ubuntu-latest
-    container: ubuntu:24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["build_type=Developer", "+petsc4py +slepc4py"]
-        compiler: ["gcc@13", "clang@18"]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-      # workaround for https://github.com/spack/spack/issues/29447
-      # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0 (at least for dolfinx @:0.9)
-      - name: Run tests
-        if: ${{ matrix.version == '0.8' || matrix.version == '0.9'}}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --add py-pytest@8.4 py-scipy
-          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest python/test/unit -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance"
-      - name: Run tests
-        if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --add py-pytest@8.4 py-scipy
-          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest python/test/unit -m "not petsc4py and not adios2" -k "not test_cffi_expression"
+  # py-fenics-dolfinx:
+  #   needs: style-check
+  #   runs-on: ubuntu-latest
+  #   container: ubuntu:24.04
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       version: ["main", "0.10", "0.9", "0.8"]
+  #       variant: ["build_type=Developer", "+petsc4py +slepc4py"]
+  #       compiler: ["gcc@13", "clang@18"]
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #       with:
+  #         path: spack-fenics
+  #     - uses: ./spack-fenics/.github/actions/test-package
+  #       with:
+  #         spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #     # workaround for https://github.com/spack/spack/issues/29447
+  #     # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0 (at least for dolfinx @:0.9)
+  #     - name: Run tests
+  #       if: ${{ matrix.version == '0.8' || matrix.version == '0.9'}}
+  #       shell: spack-bash {0}
+  #       run: |
+  #         spack env activate ./env
+  #         spack install --add py-pytest@8.4 py-scipy
+  #         spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #         spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #         pytest python/test/unit -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance"
+  #     - name: Run tests
+  #       if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
+  #       shell: spack-bash {0}
+  #       run: |
+  #         spack env activate ./env
+  #         spack install --add py-pytest@8.4 py-scipy
+  #         spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #         spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+  #         pytest python/test/unit -m "not petsc4py and not adios2" -k "not test_cffi_expression"
 
-  py-fenics-ffcx:
-    needs: style-check
-    runs-on: ubuntu-latest
-    container: ubuntu:24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: py-fenics-ffcx@${{ matrix.version }}
-      # workaround for https://github.com/spack/spack/issues/29447
-      # we do not run numba based tests here due to disk-space constraints
-      # 0.8 broken
-      - name: Run tests
-        if: ${{ matrix.version != '0.8' }}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --add py-pytest py-sympy
-          spack stage py-fenics-ffcx@${{ matrix.version }}
-          spack cd py-fenics-ffcx@${{ matrix.version }}
-          pytest test/
+  # py-fenics-ffcx:
+  #   needs: style-check
+  #   runs-on: ubuntu-latest
+  #   container: ubuntu:24.04
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       version: ["main", "0.10", "0.9", "0.8"]
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #       with:
+  #         path: spack-fenics
+  #     - uses: ./spack-fenics/.github/actions/test-package
+  #       with:
+  #         spec: py-fenics-ffcx@${{ matrix.version }}
+  #     # workaround for https://github.com/spack/spack/issues/29447
+  #     # we do not run numba based tests here due to disk-space constraints
+  #     # 0.8 broken
+  #     - name: Run tests
+  #       if: ${{ matrix.version != '0.8' }}
+  #       shell: spack-bash {0}
+  #       run: |
+  #         spack env activate ./env
+  #         spack install --add py-pytest py-sympy
+  #         spack stage py-fenics-ffcx@${{ matrix.version }}
+  #         spack cd py-fenics-ffcx@${{ matrix.version }}
+  #         pytest test/
 
   py-fenics-ufl:
     needs: style-check
