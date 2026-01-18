@@ -1,15 +1,15 @@
 name: test-spack
 description: 'Builds a spack package from given spack-spec'
 inputs:
+  spec:
+    description: 'Spack spec syntax'
+    required: true
+    type: string
   python-version:
     description: 'Python version'
     required: false
     type: string
     default: '3.10'
-  spec:
-    description: 'Spack spec syntax'
-    required: true
-    type: string
 runs:
   using: "composite"
   steps:
@@ -81,5 +81,5 @@ runs:
       if: success() || failure()
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.spec }}-log
+        name: ${{ inputs.spec }}-${{ inputs.python-version }}-log
         path: log.xml
