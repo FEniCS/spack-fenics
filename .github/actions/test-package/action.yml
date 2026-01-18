@@ -9,7 +9,7 @@ inputs:
     description: 'Python version'
     required: false
     type: string
-    default: '3.10'
+    default: '3.13'
 runs:
   using: "composite"
   steps:
