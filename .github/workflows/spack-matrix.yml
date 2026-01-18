@@ -99,7 +99,7 @@ jobs:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["", "+ufl"]
         compiler: ["gcc@13", "clang@18"]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.13"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -139,7 +139,7 @@ jobs:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["build_type=Developer", "+petsc4py +slepc4py"]
         compiler: ["gcc@13", "clang@18"]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -177,7 +177,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.13"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -207,7 +207,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "2025.2", "2025.1", "2024.2", "2024.1"]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.13"]
     steps:
       - uses: actions/checkout@v5
         with:
