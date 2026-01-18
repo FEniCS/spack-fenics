@@ -17,7 +17,7 @@ runs:
       shell: sh
       run: |
         apt-get -y update
-        apt-get install -y bzip2 curl file git gzip make patch python3-minimal tar unzip xz-utils
+        apt-get install -y bzip2 curl file git gzip make patch tar unzip xz-utils
 
     - uses: actions/setup-python@v6
       with:
