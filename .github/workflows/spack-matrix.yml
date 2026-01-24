@@ -137,6 +137,7 @@ jobs:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["build_type=Developer", "+petsc4py +slepc4py"]
         compiler: ["gcc@13", "clang@18"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -144,6 +145,7 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          python-version: ${{ matrix.python-version }}
       # workaround for https://github.com/spack/spack/issues/29447
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0 (at least for dolfinx @:0.9)
       - name: Run tests
@@ -208,7 +210,6 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           spec: py-fenics-ufl@${{ matrix.version }}
-      
       # workaround for https://github.com/spack/spack/issues/29447
       - name: Run tests
         shell: spack-bash {0}
