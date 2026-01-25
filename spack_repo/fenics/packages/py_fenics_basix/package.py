@@ -43,6 +43,14 @@ class PyFenicsBasix(PythonPackage):
             sha256="687ae53153c98facac4080dcdc7081701db1dcea8c5e7ae3feb72aec17f83304",
         )
 
+    # CMake build type
+    variant(
+        "build_type",
+        default="RelWithDebInfo",
+        description="CMake build type",
+        values=("Debug", "Release", "RelWithDebInfo", "MinSizeRel", "Developer"),
+    )
+
     variant("ufl", default=False, description="UFL support")
 
     depends_on("cxx", type="build")
@@ -83,6 +91,7 @@ class PyFenicsBasix(PythonPackage):
         return {
             "build.tool-args": f"-j{make_jobs}",
             "build.verbose": "true",
+            "cmake.build-type": spec.variants["build_type"].value,
         }
 
     build_directory = "python"
