@@ -83,7 +83,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("adios2+mpi", when="+adios2")
 
     # If asked for DOLFINx without Parmetis, don't build SuperLU_DIST with it.
-    depends_on("superlu-dist+parmetis", when="+superlu_dist partitioners=parmetis")
+    depends_on("superlu-dist+parmetis", when="+superlu-dist partitioners=parmetis")
     depends_on("superlu-dist~parmetis", when="+superlu-dist partitioners=~parmetis")
 
     for ver in ("main", "0.10", "0.9", "0.8", "0.7", "0.6"):
@@ -105,4 +105,5 @@ class FenicsDolfinx(CMakePackage):
             self.define("DOLFINX_ENABLE_KAHIP", "partitioners=kahip" in self.spec),
             self.define("DOLFINX_ENABLE_PARMETIS", "partitioners=parmetis" in self.spec),
             self.define("DOLFINX_ENABLE_SCOTCH", "partitioners=scotch" in self.spec),
+            self.define("DOLFINX_ENABLE_SUPERLU_DIST", "superlu_dist" in self.spec),
         ]
