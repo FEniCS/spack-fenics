@@ -99,9 +99,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("adios2@2.8.1:", when="@0.9: +adios2")
     depends_on("adios2+mpi", when="+adios2")
 
-    # If asked for DOLFINx without Parmetis, don't build SuperLU_DIST with it.
-    depends_on("superlu-dist+parmetis", when="+superlu-dist partitioners=parmetis")
-    depends_on("superlu-dist~parmetis", when="+superlu-dist partitioners=~parmetis")
+    depends_on("superlu-dist", when="+superlu-dist")
 
     for ver in ("main", "0.10", "0.9", "0.8", "0.7", "0.6"):
         depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
