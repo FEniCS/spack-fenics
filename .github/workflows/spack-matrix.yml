@@ -116,20 +116,20 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest py-sympy
+          spack install --add py-pytest py-sympy py-pytest-xdist
           spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          python -m pytest test/
+          python -m pytest -n auto test/
       # NOTE: 0.8 has test_all_elements_included broken
       - name: Run tests
         if: ${{ matrix.version == '0.8' && contains(matrix.variant, '+ufl') }}
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest py-sympy
+          spack install --add py-pytest py-sympy py-pytest-xdist
           spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          python -m pytest -k "not test_all_elements_included" test/
+          python -m pytest -n auto -k "not test_all_elements_included" test/
 
   py-fenics-dolfinx:
     needs: style-check
@@ -139,7 +139,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["build_type=Developer +petsc4py +slepc4py ^petsc+mumps"]
+        variant: ["build_type=Developer +petsc4py +slepc4py ^petsc+mumps ^fenics-dolfinx+adios2"]
         compiler: ["gcc@13", "clang@18"]
         python-version: ["3.12", "3.13"]
         include:
@@ -156,6 +156,7 @@ jobs:
         with:
           spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0
+      # TODO: Get this to run petsc4py tests
       - name: Run tests
         if: ${{ matrix.version == '0.8' || matrix.version == '0.9'}}
         shell: spack-bash {0}
@@ -198,10 +199,10 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest py-sympy
+          spack install --add py-pytest py-sympy py-pytest-xdist
           spack stage py-fenics-ffcx@${{ matrix.version }}
           spack cd py-fenics-ffcx@${{ matrix.version }}
-          python -m pytest test/
+          python -m pytest -n auto test/
 
   py-fenics-ufl:
     needs: style-check
@@ -222,7 +223,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest
+          spack install --add py-pytest py-pytest-xdist
           spack stage py-fenics-ufl@${{ matrix.version }}
           spack cd py-fenics-ufl@${{ matrix.version }}
-          python -m pytest test/
+          python -m pytest -n auto test/
