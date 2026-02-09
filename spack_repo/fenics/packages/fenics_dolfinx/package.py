@@ -122,5 +122,5 @@ class FenicsDolfinx(CMakePackage):
                 "DOLFINX_ENABLE_PARMETIS", "partitioners=parmetis" in self.spec
             ),
             self.define("DOLFINX_ENABLE_SCOTCH", "partitioners=scotch" in self.spec),
-            self.define("DOLFINX_ENABLE_SUPERLU_DIST", "superlu_dist" in self.spec),
+            self.define("DOLFINX_ENABLE_SUPERLU_DIST", "superlu-dist" in self.spec),
         ]
