@@ -5,11 +5,6 @@ inputs:
     description: 'Spack spec syntax'
     required: true
     type: string
-  python-version:
-    description: 'Python version'
-    required: false
-    type: string
-    default: '3.13'
 runs:
   using: "composite"
   steps:
@@ -21,7 +16,7 @@ runs:
 
     - uses: actions/setup-python@v6
       with:
-        python-version: ${{ inputs.python-version }}
+        python-version: 3.13
 
     - name: Set up spack
       uses: spack/setup-spack@v2
@@ -30,14 +25,12 @@ runs:
         color: true
         path: spack
 
-    - name: Install gcc-13 (default)
+    - name: Install gcc
       shell: sh
-      if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
       run: apt-get install -y g++ gcc gfortran build-essential
 
     - name: Install clang-18
       shell: sh
-      if: contains(inputs.spec, 'clang@18')
       run: apt-get install -y clang-18 gfortran
 
     - name: Add repos
@@ -69,7 +62,7 @@ runs:
     - name: Concretize
       shell: spack-bash {0}
       run: spack -e ./env concretize -j 4
-    
+
     - name: Install
       shell: spack-bash {0}
       run: >
@@ -81,5 +74,5 @@ runs:
       if: success() || failure()
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.spec }}-${{ inputs.python-version }}-log
+        name: ${{ inputs.spec }}-log
         path: log.xml

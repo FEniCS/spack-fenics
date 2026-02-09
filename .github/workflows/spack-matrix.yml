@@ -41,7 +41,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["build_type=Developer"]
-        compiler: ["gcc@13", "clang@18"]
+        compiler: ["gcc", "clang"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -58,12 +58,16 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2"]
-        compiler: ["gcc@13", "clang@18"]
+        variant: ["build_type=Developer", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2"]
+        compiler: ["gcc", "clang"]
         exclude:
           # kahip does not support clang
-          - variant: "partitioners=kahip,parmetis,scotch"
-            compiler: "clang@18"
+          - variant: "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2"
+            compiler: "clang"
+        include:
+          # test native superlu-dist support
+          version: "main"
+          variant: "build_type=Developer +superlu-dist"
     steps:
       - uses: actions/checkout@v5
         with:
@@ -80,7 +84,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        compiler: ["gcc@13"]
+        compiler: ["gcc"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -98,7 +102,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["", "+ufl"]
-        compiler: ["gcc@13", "clang@18"]
+        compiler: ["gcc", "clang"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -136,17 +140,22 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["build_type=Developer +petsc4py +slepc4py"]
-        compiler: ["gcc@13", "clang@18"]
+        compiler: ["gcc", "clang"]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+      include:
+        # test new native superlu-dist support
+        version: "main"
+        variant: "build_type=Developer ^fenics-dolfinx+superlu-dist"
+        compiler: "gcc"
+        python-version: "3.13"
     steps:
       - uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          python-version: ${{ matrix.python-version }}
-      # workaround for https://github.com/spack/spack/issues/29447
+          spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
+      # Workaround for https://github.com/spack/spack/issues/29447
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0 (at least for dolfinx @:0.9)
       - name: Run tests
         if: ${{ matrix.version == '0.8' || matrix.version == '0.9'}}
@@ -182,7 +191,7 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           spec: py-fenics-ffcx@${{ matrix.version }}
-      # workaround for https://github.com/spack/spack/issues/29447
+      # Workaround for https://github.com/spack/spack/issues/29447
       # we do not run numba based tests here due to disk-space constraints
       # 0.8 broken
       - name: Run tests
