@@ -41,7 +41,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["build_type=Developer"]
-        compiler: ["gcc", "clang"]
+        compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -59,16 +59,16 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["build_type=Developer", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2"]
-        compiler: ["gcc", "clang"]
+        compiler: ["gcc@13", "clang@18"]
         exclude:
           # kahip does not support clang
           - variant: "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2"
-            compiler: "clang"
+            compiler: "clang@18"
         include:
           # test native superlu-dist support
           - version: "main"
             variant: "build_type=Developer +superlu-dist"
-            compiler: "gcc"
+            compiler: "gcc@13"
     steps:
       - uses: actions/checkout@v5
         with:
@@ -85,7 +85,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        compiler: ["gcc"]
+        compiler: ["gcc@13"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -103,7 +103,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["", "+ufl"]
-        compiler: ["gcc", "clang"]
+        compiler: ["gcc@13", "clang@18"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -119,7 +119,7 @@ jobs:
           spack install --add py-pytest py-sympy
           spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest test/
+          python -m pytest test/
       # NOTE: 0.8 has test_all_elements_included broken
       - name: Run tests
         if: ${{ matrix.version == '0.8' && contains(matrix.variant, '+ufl') }}
@@ -129,7 +129,7 @@ jobs:
           spack install --add py-pytest py-sympy
           spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          pytest test/ -k "not test_all_elements_included" 
+          python -m pytest -k "not test_all_elements_included" test/
 
   py-fenics-dolfinx:
     needs: style-check
@@ -140,13 +140,13 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         variant: ["build_type=Developer +petsc4py +slepc4py"]
-        compiler: ["gcc", "clang"]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        compiler: ["gcc@13", "clang@18"]
+        python-version: ["3.12", "3.13"]
         include:
           # Test new native superlu-dist support
           - version: "main"
             variant: "build_type=Developer ^fenics-dolfinx+superlu-dist"
-            compiler: "gcc"
+            compiler: "gcc@13"
             python-version: "3.13"
     steps:
       - uses: actions/checkout@v5
@@ -161,19 +161,19 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest@8.4 py-scipy
-          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          spack install --add py-pytest@8.4 py-scipy py-pytest-xdist
+          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
+          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance" python/test/unit
-          mpiexec -np 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance" python/test/unit
+          mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance" python/test/unit
       - name: Run tests
         if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest py-scipy
-          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          spack install --add py-pytest py-scipy py-pytest-xdist
+          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
+          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression" python/test/unit
           mpiexec -np 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression" python/test/unit
 
@@ -201,7 +201,7 @@ jobs:
           spack install --add py-pytest py-sympy
           spack stage py-fenics-ffcx@${{ matrix.version }}
           spack cd py-fenics-ffcx@${{ matrix.version }}
-          pytest test/
+          python -m pytest test/
 
   py-fenics-ufl:
     needs: style-check
@@ -225,4 +225,4 @@ jobs:
           spack install --add py-pytest
           spack stage py-fenics-ufl@${{ matrix.version }}
           spack cd py-fenics-ufl@${{ matrix.version }}
-          pytest test/
+          python -m pytest test/
