@@ -62,12 +62,13 @@ jobs:
         compiler: ["gcc", "clang"]
         exclude:
           # kahip does not support clang
-          - variant: "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2"
-            compiler: "clang"
+          variant: "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2"
+          compiler: "clang"
         include:
           # test native superlu-dist support
           version: "main"
           variant: "build_type=Developer +superlu-dist"
+          compiler: "gcc"
     steps:
       - uses: actions/checkout@v5
         with:
@@ -142,12 +143,12 @@ jobs:
         variant: ["build_type=Developer +petsc4py +slepc4py"]
         compiler: ["gcc", "clang"]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
-      include:
-        # test new native superlu-dist support
-        version: "main"
-        variant: "build_type=Developer ^fenics-dolfinx+superlu-dist"
-        compiler: "gcc"
-        python-version: "3.13"
+        include:
+          # test new native superlu-dist support
+          version: "main"
+          variant: "build_type=Developer ^fenics-dolfinx+superlu-dist"
+          compiler: "gcc"
+          python-version: "3.13"
     steps:
       - uses: actions/checkout@v5
         with:
