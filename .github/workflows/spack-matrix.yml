@@ -139,7 +139,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        variant: ["build_type=Developer +petsc4py +slepc4py"]
+        variant: ["build_type=Developer +petsc4py +slepc4py ^petsc+mumps"]
         compiler: ["gcc@13", "clang@18"]
         python-version: ["3.12", "3.13"]
         include:
@@ -147,7 +147,7 @@ jobs:
           - version: "main"
             variant: "build_type=Developer ^fenics-dolfinx+superlu-dist"
             compiler: "gcc@13"
-            python-version: "3.13"
+            python-version: "3.11"
     steps:
       - uses: actions/checkout@v5
         with:
@@ -161,7 +161,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest@8.4 py-scipy py-pytest-xdist
+          spack install --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance" python/test/unit
@@ -171,7 +171,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest py-scipy py-pytest-xdist
+          spack install --add py-pytest py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression" python/test/unit
