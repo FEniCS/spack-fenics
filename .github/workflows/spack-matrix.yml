@@ -48,7 +48,7 @@ jobs:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: fenics-basix@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }}
+          spec: fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
 
   fenics-dolfinx:
     needs: style-check
@@ -75,7 +75,8 @@ jobs:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: fenics-dolfinx@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }}
+          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+
   fenics-ufcx:
     needs: style-check
     runs-on: ubuntu-latest
@@ -116,8 +117,8 @@ jobs:
         run: |
           spack env activate ./env
           spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }}
-          spack cd py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }}
+          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           python -m pytest -n auto test/
       # NOTE: 0.8 has test_all_elements_included broken
       - name: Run tests
@@ -126,8 +127,8 @@ jobs:
         run: |
           spack env activate ./env
           spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }}
-          spack cd py-fenics-basix@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }}
+          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
           python -m pytest -n auto -k "not test_all_elements_included" test/
 
   py-fenics-dolfinx:
@@ -153,7 +154,7 @@ jobs:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: py-fenics-dolfinx@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }} ^python@${{ matrix.python-version }}
+          spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0
       - name: Run tests
         if: ${{ matrix.version == '0.8' || matrix.version == '0.9'}}
@@ -161,8 +162,8 @@ jobs:
         run: |
           spack env activate ./env
           spack install --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
-          spack stage py-fenics-dolfinx@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }} ^python@${{ matrix.python-version }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }} ^python@${{ matrix.python-version }}
+          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
+          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -k "not test_cffi_expression and not test_cube_distance" python/test/unit
           mpiexec -n 3 python -m pytest -k "not test_cffi_expression and not test_cube_distance" python/test/unit
       - name: Run tests
@@ -171,8 +172,8 @@ jobs:
         run: |
           spack env activate ./env
           spack install --add py-pytest py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
-          spack stage py-fenics-dolfinx@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }} ^python@${{ matrix.python-version }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} %${{ matrix.compiler }} ${{ matrix.variant }} ^python@${{ matrix.python-version }}
+          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
+          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -k "not test_cffi_expression" python/test/unit
           mpiexec -np 3 python -m pytest -k "not test_cffi_expression" python/test/unit
 
