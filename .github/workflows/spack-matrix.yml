@@ -13,6 +13,7 @@ jobs:
   style-check:
     name: ✨
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/setup-python@v6
         with:
@@ -41,6 +42,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         spec: ["build_type=Developer %gcc@13", "build_type=Developer %clang@18"]
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -57,7 +59,13 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %gcc@13", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %clang@18"]
+        spec: ["build_type=Developer %gcc@13", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %clang@18 ^mpich"]
+    env:
+      OMPI_ALLOW_RUN_AS_ROOT: 1
+      OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe   # Newer OpenMPI
+      OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -65,6 +73,7 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
+      # TODO: Add C++ unit tests
 
   fenics-ufcx:
     needs: style-check
@@ -75,6 +84,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         spec: ["%gcc@13"]
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -92,6 +102,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         spec: ["+ufl %gcc@13", "+ufl %clang@18"]
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -128,14 +139,21 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         python-version: ["3.10", "3.13"]
+        # NOTE: As of 2/2026 %%clang@18 seems to create dependency on mpilander stub mpi, not mpich.
         # NOTE: %% propagates to dependencies - without this, C++ ABI seems to be an issue for clang.
         spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
-               "build_type=Developer %%clang@18"]
+               "build_type=Developer %%clang@18 ^openmpi"]
         # Test new superlu-dist variant
         include:
           - version: "main"
-            spec: "build_type=Developer %%clang@18 ^fenics-dolfinx+superlu-dist"
+            spec: "build_type=Developer %%clang@18 ^fenics-dolfinx+superlu-dist ^mpich"
             python-version: "3.12"
+    env:
+      OMPI_ALLOW_RUN_AS_ROOT: 1
+      OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe   # Newer OpenMPI
+      OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -173,6 +191,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -199,6 +218,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "2025.2", "2025.1", "2024.2", "2024.1"]
+
     steps:
       - uses: actions/checkout@v5
         with:
