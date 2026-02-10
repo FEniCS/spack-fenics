@@ -78,7 +78,7 @@ jobs:
         run: |
           spack env activate ./env
           spack install --add catch2 cmake
-          spack load cmake
+          spack load --first cmake
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} 
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
           cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
@@ -160,7 +160,7 @@ jobs:
         # Test new superlu-dist variant
         include:
           - version: "main"
-            spec: "build_type=Developer %%clang@18 ^mpich ^fenics-dolfinx+superlu-dist"
+            spec: "build_type=Developer %%clang@18 ^mpich-fortran ^fenics-dolfinx+superlu-dist"
             python-version: "3.12"
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
