@@ -71,14 +71,6 @@ class PyFenicsDolfinx(PythonPackage):
     for ver in ["main", "0.10.0.post4", "0.9.0", "0.8.0", "0.7.2", "0.6.0"]:
         depends_on(f"fenics-dolfinx@{ver}", when=f"@{ver}")
 
-    # Ensure fenics-dolfinx is built with same compiler.
-    depends_on("fenics-dolfinx%gcc",   when="%gcc")
-    depends_on("fenics-dolfinx%clang", when="%clang")
-    depends_on("fenics-dolfinx%oneapi", when="%oneapi")
-    depends_on("fenics-dolfinx%intel", when="%intel")
-    depends_on("fenics-dolfinx%nvhpc", when="%nvhpc")
-    depends_on("fenics-dolfinx%aocc",  when="%aocc")
-
     for ver in ["main", "0.10", "0.9", "0.8", "0.7", "0.6"]:
         depends_on(f"fenics-basix@{ver}", type=("build", "link"), when=f"@{ver}")
         depends_on(f"py-fenics-basix@{ver} +ufl", type=("build", "run"), when=f"@{ver}")
