@@ -59,7 +59,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %gcc@13", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %clang@18 ^mpich"]
+        spec: ["build_type=Developer %gcc@13 catch2", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %clang@18 ^mpich catch2"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -73,7 +73,18 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
-      # TODO: Add C++ unit tests
+      - name: Run tests
+        shell: spack-bash {0}
+        run: |
+          spack env activate ./env
+          spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
+          spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
+          cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
+          cmake --build build/test
+          cd build/test
+          ctest -V --output-on-failure -R unittests_np_1
+          ctest -V --output-on-failure -R unittests_np_3
+
 
   fenics-ufcx:
     needs: style-check
@@ -102,7 +113,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         # Make sure fenics-basix and py-fenics-basix build with same compiler/ABI.
-        spec: ["+ufl %gcc@13 ^fenics-basix %gcc@13", "+ufl %clang@18 ^fenics-basix %clang@18"]
+        spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %clang@18 ^fenics-basix%clang@18"]
 
     steps:
       - uses: actions/checkout@v5
@@ -140,15 +151,14 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         python-version: ["3.10", "3.13"]
-        # NOTE: As of 2/2026 %%clang@18 seems to create dependency on mpilander stub mpi, not mpich.
-        # NOTE: %% propagates to dependencies - without this, C++ ABI mixing
-        # seems to be an issue through Basix/DOLFINx.
-        spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
-               "build_type=Developer %%clang@18 ^openmpi"]
+        # NOTE: As of 2/2026 %clang@18 seems to create dependency on mpilander stub mpi or intelmpi.
+        # NOTE: Some overspecification of %clang@18 to fix ABI issues (std::string).
+        spec: ["build_type=Developer +petsc4py +slepc4py %gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
+               "build_type=Developer %clang@18 ^openmpi ^fenics-dolfinx%clang@18 ^py-fenics-dolfinx%clang@18 ^fenics-basix%clang@18"]
         # Test new superlu-dist variant
         include:
           - version: "main"
-            spec: "build_type=Developer %%clang@18 ^fenics-dolfinx+superlu-dist ^mpich"
+            spec: "build_type=Developer %clang@18 ^mpich ^fenics-dolfinx+superlu-dist%clang@18 ^py-fenics-dolfinx%clang@18 ^fenics-basix%clang@18"
             python-version: "3.12"
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
@@ -172,7 +182,7 @@ jobs:
           spack install --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
-          python -m pytest -n auto -k "not test_cffi_expression and not test_cube_distance" python/test/unit
+          python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance" python/test/unit
           mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance" python/test/unit
       - name: Run tests
         if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
