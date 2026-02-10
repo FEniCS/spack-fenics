@@ -77,7 +77,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add catch2 cmake
+          spack install --add catch2 cmake %gcc@13
           spack load cmake
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} 
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
