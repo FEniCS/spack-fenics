@@ -63,6 +63,7 @@ runs:
       shell: spack-bash {0}
       run: |
         spack -e ./env config add concretizer:unify:true
+        spack -e ./env config add concretizer:duplicates:strategy:none
         spack -e ./env concretize -j 4
 
     - name: Install
