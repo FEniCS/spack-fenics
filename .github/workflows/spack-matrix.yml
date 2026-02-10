@@ -59,7 +59,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %gcc@13 catch2", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %clang@18 ^mpich catch2"]
+        spec: ["build_type=Developer %gcc@13", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%clang@18 ^mpich"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -77,6 +77,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
+          spack install --add catch2
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
           cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
@@ -113,7 +114,7 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         # Make sure fenics-basix and py-fenics-basix build with same compiler/ABI.
-        spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %clang@18 ^fenics-basix%clang@18"]
+        spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %%clang@18 ^fenics-basix%clang@18"]
 
     steps:
       - uses: actions/checkout@v5
@@ -154,11 +155,11 @@ jobs:
         # NOTE: As of 2/2026 %clang@18 seems to create dependency on mpilander stub mpi or intelmpi.
         # NOTE: Some overspecification of %clang@18 to fix ABI issues (std::string).
         spec: ["build_type=Developer +petsc4py +slepc4py %gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
-               "build_type=Developer %clang@18 ^openmpi ^fenics-dolfinx%clang@18 ^py-fenics-dolfinx%clang@18 ^fenics-basix%clang@18"]
+               "build_type=Developer %%clang@18 ^openmpi"]
         # Test new superlu-dist variant
         include:
           - version: "main"
-            spec: "build_type=Developer %clang@18 ^mpich ^fenics-dolfinx+superlu-dist%clang@18 ^py-fenics-dolfinx%clang@18 ^fenics-basix%clang@18"
+            spec: "build_type=Developer %%clang@18 ^mpich ^fenics-dolfinx+superlu-dist"
             python-version: "3.12"
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
