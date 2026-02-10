@@ -132,7 +132,7 @@ jobs:
                "build_type=Developer %clang@18"]
         # Test new superlu-dist variant
         include:
-          version: "main"
+          - version: "main"
           spec: "build_type=Developer +superlu-dist %clang@18"
     steps:
       - uses: actions/checkout@v5
