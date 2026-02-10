@@ -98,9 +98,9 @@ jobs:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.variant }} %${{ matrix.compiler }}
+          spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
       - name: Run tests
-        if: ${{ matrix.version != '0.8' && contains(matrix.variant, '+ufl') }}
+        if: ${{ matrix.version != '0.8' && contains(matrix.spec, '+ufl') }}
         shell: spack-bash {0}
         run: |
           spack env activate ./env
@@ -110,7 +110,7 @@ jobs:
           python -m pytest -n auto test/
       # NOTE: 0.8 has test_all_elements_included broken
       - name: Run tests
-        if: ${{ matrix.version == '0.8' && contains(matrix.variant, '+ufl') }}
+        if: ${{ matrix.version == '0.8' && contains(matrix.spec, '+ufl') }}
         shell: spack-bash {0}
         run: |
           spack env activate ./env
