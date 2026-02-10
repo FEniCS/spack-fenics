@@ -62,7 +62,6 @@ runs:
     - name: Concretize
       shell: spack-bash {0}
       run: |
-        spack -e ./env config add concretizer:reuse:false
         spack -e ./env config add concretizer:unify:true
         spack -e ./env concretize -j 4
 

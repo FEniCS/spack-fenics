@@ -63,7 +63,8 @@ jobs:
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
-      PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
+      PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe   # Newer OpenMPI
+      OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
 
     steps:
       - uses: actions/checkout@v5
@@ -100,7 +101,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer +ufl %gcc@13", "build_type=Developer +ufl %clang@18"]
+        spec: ["+ufl %gcc@13", "+ufl %clang@18"]
 
     steps:
       - uses: actions/checkout@v5
@@ -138,17 +139,20 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         python-version: ["3.10", "3.13"]
-        spec: ["build_type=Developer +petsc4py +slepc4py %gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
-               "build_type=Developer %clang@18 ^openmpi"]
+        # NOTE: As of 2/2026 %%clang@18 seems to create dependency on mpilander stub mpi, not mpich.
+        # NOTE: %% propagates to dependencies - without this, C++ ABI seems to be an issue for clang.
+        spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
+               "build_type=Developer %%clang@18 ^openmpi"]
         # Test new superlu-dist variant
         include:
           - version: "main"
-            spec: "build_type=Developer %clang@18 ^fenics-dolfinx+superlu-dist ^mpich"
+            spec: "build_type=Developer %%clang@18 ^fenics-dolfinx+superlu-dist ^mpich"
             python-version: "3.12"
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
-      PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
+      PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe   # Newer OpenMPI
+      OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
 
     steps:
       - uses: actions/checkout@v5
@@ -177,7 +181,7 @@ jobs:
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -k "not test_cffi_expression" python/test/unit
-          mpiexec -n 3 python -m pytest -k "not test_cffi_expression" python/test/unit
+          mpiexec -np 3 python -m pytest -k "not test_cffi_expression" python/test/unit
 
   py-fenics-ffcx:
     needs: style-check
