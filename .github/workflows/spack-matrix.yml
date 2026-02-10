@@ -91,7 +91,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        spec: ["+ufl %gcc@13", "%clang@18"] 
+        spec: ["+ufl %gcc@13", "+ufl %clang@18"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -100,7 +100,7 @@ jobs:
         with:
           spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
       - name: Run tests
-        if: ${{ matrix.version != '0.8' && contains(matrix.spec, '+ufl') }}
+        if: ${{ matrix.version != '0.8' }}
         shell: spack-bash {0}
         run: |
           spack env activate ./env
@@ -110,7 +110,7 @@ jobs:
           python -m pytest -n auto test/
       # NOTE: 0.8 has test_all_elements_included broken
       - name: Run tests
-        if: ${{ matrix.version == '0.8' && contains(matrix.spec, '+ufl') }}
+        if: ${{ matrix.version == '0.8' }}
         shell: spack-bash {0}
         run: |
           spack env activate ./env
@@ -128,12 +128,13 @@ jobs:
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
         python-version: ["3.10", "3.13"]
-        spec: ["build_type=Developer +petsc4py +slepc4py %gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
-               "build_type=Developer %clang@18"]
+        # NOTE: %% propagates to dependencies - without this, C++ ABI seems to be an issue for clang.
+        spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
+               "build_type=Developer %%clang@18"]
         # Test new superlu-dist variant
         include:
           - version: "main"
-            spec: "build_type=Developer %clang@18 ^fenics-dolfinx+superlu-dist"
+            spec: "build_type=Developer %%clang@18 ^fenics-dolfinx+superlu-dist"
             python-version: "3.12"
     steps:
       - uses: actions/checkout@v5
