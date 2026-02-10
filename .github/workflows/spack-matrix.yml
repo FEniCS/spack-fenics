@@ -78,7 +78,7 @@ jobs:
         run: |
           spack env activate ./env
           spack install --add catch2 cmake %gcc@13
-          spack load cmake
+          spack load cmake@31.31.11
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} 
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
           cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
