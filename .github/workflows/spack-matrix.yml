@@ -133,7 +133,7 @@ jobs:
         # Test new superlu-dist variant
         include:
           - version: "main"
-            spec: "build_type=Developer +superlu-dist %clang@18"
+            spec: "build_type=Developer %clang@18 ^fenics-dolfinx+superlu-dist"
             python-version: "3.12"
     steps:
       - uses: actions/checkout@v5
