@@ -64,7 +64,7 @@ jobs:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: fenics-dolfinx@${{ matrix.version }} %${{ matrix.spec }}
+          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
 
   fenics-ufcx:
     needs: style-check
@@ -140,7 +140,7 @@ jobs:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: py-fenics-dolfinx@${{ matrix.version }} ^python@${{ matrix.python-version }}
+          spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0
       - name: Run tests
         if: ${{ matrix.version == '0.8' || matrix.version == '0.9'}}
