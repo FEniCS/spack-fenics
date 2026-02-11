@@ -19,26 +19,13 @@ class PyFenicsDolfinx(PythonPackage):
 
     version("main", branch="main", no_cache=True)
     version(
-        "0.10.0.post4",
-        sha256="3f827a88ab52843fbd7a5cc7814ecba165bdec65fd10df05eb031c286e8cd605",
+        "0.10.0.post4", sha256="3f827a88ab52843fbd7a5cc7814ecba165bdec65fd10df05eb031c286e8cd605"
     )
-    version(
-        "0.9.0",
-        sha256="b266c74360c2590c5745d74768c04568c965b44739becca4cd6b5aa58cdbbbd1",
-    )
-    version(
-        "0.8.0",
-        sha256="acf3104d9ecc0380677a6faf69eabfafc58d0cce43f7777e1307b95701c7cad9",
-    )
+    version("0.9.0", sha256="b266c74360c2590c5745d74768c04568c965b44739becca4cd6b5aa58cdbbbd1")
+    version("0.8.0", sha256="acf3104d9ecc0380677a6faf69eabfafc58d0cce43f7777e1307b95701c7cad9")
     with default_args(deprecated=True):
-        version(
-            "0.7.2",
-            sha256="7d9ce1338ce66580593b376327f23ac464a4ce89ef63c105efc1a38e5eae5c0b",
-        )
-        version(
-            "0.6.0",
-            sha256="eb8ac2bb2f032b0d393977993e1ab6b4101a84d54023a67206e3eac1a8d79b80",
-        )
+        version("0.7.2", sha256="7d9ce1338ce66580593b376327f23ac464a4ce89ef63c105efc1a38e5eae5c0b")
+        version("0.6.0", sha256="eb8ac2bb2f032b0d393977993e1ab6b4101a84d54023a67206e3eac1a8d79b80")
 
     # CMake build type
     variant(
@@ -89,11 +76,7 @@ class PyFenicsDolfinx(PythonPackage):
     depends_on("py-numpy@1.21:", type=("build", "run"))
     depends_on("py-mpi4py", type=("build", "run"))
 
-    conflicts(
-        "~petsc4py",
-        when="@:0.8",
-        msg="+petsc4py is required for versions 0.8 and lower",
-    )
+    conflicts("~petsc4py", when="@:0.8", msg="+petsc4py is required for versions 0.8 and lower")
     conflicts("~petsc4py", when="+slepc4py", msg="+slepc4py requires +petsc4py")
     with when("+petsc4py"):
         depends_on("fenics-dolfinx +petsc")
