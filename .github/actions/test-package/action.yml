@@ -17,7 +17,7 @@ runs:
       shell: sh
       run: |
         apt-get -y update
-        apt-get install -y bzip2 curl file git gzip make patch tar unzip xz-utils
+        apt-get install -y bzip2 curl file git gzip make patch tar unzip xz-utils build-essential
 
     - uses: actions/setup-python@v6
       with:
@@ -33,12 +33,20 @@ runs:
     - name: Install gcc-13 (default)
       shell: sh
       if: contains(inputs.spec, 'gcc@13') || (! contains(inputs.spec, 'clang') && ! contains(inputs.spec, 'gcc'))
-      run: apt-get install -y g++ gcc gfortran build-essential
+      # run: apt-get install -y g++ gcc gfortran build-essential
+      run: |
+        spack install --cache-only gcc@13
+        spack compiler find $(spack location -i gcc)
+        spack compilers
 
     - name: Install clang-18
       shell: sh
       if: contains(inputs.spec, 'clang@18')
-      run: apt-get install -y clang-18 gfortran
+      # run: apt-get install -y clang-18 gfortran
+      run: |
+        spack install --cache-only clang@13
+        spack compiler find $(spack location -i clang)
+        spack compilers
 
     - name: Add repos
       shell: spack-bash {0}
