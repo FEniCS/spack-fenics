@@ -28,6 +28,7 @@ jobs:
           path: spack-core
       - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.github/workflows/requirements/style/requirements.txt
       - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.flake8
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/pyproject.toml
       - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.ci/style_check.sh
       - run: pip install -r requirements.txt
       - run: chmod +x style_check.sh
