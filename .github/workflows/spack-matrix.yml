@@ -21,7 +21,8 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 2
-      - uses: actions/checkout@v5
+      - name: Fetch Spack CI scripts
+        uses: actions/checkout@v5
         with:
           repository: spack/spack
           ref: develop
@@ -59,9 +60,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Issue: clang sometimes likes stub or Intel MPI
+        # Issue: mpich tries to build fortran without installing python3.
         version: ["main", "0.10", "0.9", "0.8"]
         spec: ["build_type=Developer %%clang@18 ^openmpi",
-               "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %gcc@13 ^mpich"]
+               "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %gcc@13 ^mpich~fortran"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -69,7 +72,7 @@ jobs:
       OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
 
     steps:
-      - uses: actions/checkout@v5
+        uses: actions/checkout@v5
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -156,8 +159,9 @@ jobs:
 #      matrix:
 #        version: ["main", "0.10", "0.9", "0.8"]
 #        python-version: ["3.10", "3.13"]
-#        # NOTE: As of 2/2026 %clang@18 seems to create dependency on mpilander stub mpi or intelmpi.
-#        # NOTE: Some overspecification of %clang@18 to fix ABI issues (std::string).
+#        # Issue: Overspecification of %%clang@18 to fix ABI issues (std::string related?).
+#        # Issue: clang sometimes likes stub or Intel MPI.
+#        # Issue: mpich tries to build fortran without installing python3.
 #        spec: ["build_type=Developer +petsc4py +slepc4py %gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2",
 #               "build_type=Developer %%clang@18 ^openmpi"]
 #        # Test new superlu-dist variant
