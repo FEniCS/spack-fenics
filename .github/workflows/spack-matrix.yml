@@ -77,8 +77,6 @@ jobs:
         with:
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
       - name: Run tests
-        # Out of disk error with clang
-        if: contains(matrix.spec, '%gcc@13')
         shell: spack-bash {0}
         run: |
           spack env activate ./env
