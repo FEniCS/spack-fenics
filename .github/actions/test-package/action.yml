@@ -12,11 +12,7 @@ runs:
       shell: sh
       run: |
         apt-get -y update
-        apt-get install -y bzip2 curl file git gzip make patch tar unzip xz-utils
-
-    - uses: actions/setup-python@v6
-      with:
-        python-version: 3.13
+        apt-get install -y file bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release patch python3 tar unzip xz-utils zstd
 
     - name: Set up spack
       uses: spack/setup-spack@v2
@@ -25,13 +21,9 @@ runs:
         color: true
         path: spack
 
-    - name: Install gcc
-      shell: sh
-      run: apt-get install -y g++ gcc gfortran build-essential
-
     - name: Install clang-18
       shell: sh
-      run: apt-get install -y clang-18 gfortran
+      run: apt-get install -y clang-18
 
     - name: Add repos
       shell: spack-bash {0}
