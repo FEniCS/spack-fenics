@@ -69,7 +69,8 @@ class FenicsDolfinx(CMakePackage):
     depends_on("cmake@3.19:", when="@:0.8", type="build")
     depends_on("pkgconfig", type="build")
     depends_on("mpi")
-    depends_on("hdf5+mpi")
+    # HDF5Interface.cpp #if H5_VERSION_GE are not precise enough.
+    depends_on("hdf5+mpi@1.12:")
     depends_on("boost@1.70:")
     depends_on("boost@1.70:+timer", when="@:0.9")
     depends_on("pugixml")
