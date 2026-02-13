@@ -23,6 +23,7 @@ runs:
 
     - name: Install clang-18
       shell: sh
+      if: contains(spec, '%clang')
       run: apt-get install -y clang-18
 
     - name: Add repos
