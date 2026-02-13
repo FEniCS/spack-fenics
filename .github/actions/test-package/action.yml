@@ -23,7 +23,7 @@ runs:
 
     - name: Install clang-18
       shell: sh
-      if: contains(spec, '%clang')
+      if: contains(inputs.spec, '%clang')
       run: apt-get install -y clang-18
 
     - name: Add repos
@@ -36,7 +36,7 @@ runs:
     - name: add cache
       shell: spack-bash {0}
       run: |
-        spack config add "packages:all:target:[x86_64_v3]"
+#        spack config add "packages:all:target:[x86_64_v3]"
 #        spack mirror add e4s-25.11 https://cache.e4s.io/25.11
 #        spack buildcache keys --install --trust
 
