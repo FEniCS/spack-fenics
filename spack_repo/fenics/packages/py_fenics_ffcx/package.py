@@ -32,6 +32,9 @@ class PyFenicsFfcx(PythonPackage):
     # Runtime dependency on pkg_resources from setuptools at 0.6.0
     depends_on("py-setuptools@58:", when="@:0.6", type=("build", "run"))
 
+    patch("test.patch", when="@main")
+
+
     # CFFI is required at runtime for JIT support
     depends_on("py-cffi", type=("build", "run"))
     depends_on("py-numpy@1.21:", type=("build", "run"))

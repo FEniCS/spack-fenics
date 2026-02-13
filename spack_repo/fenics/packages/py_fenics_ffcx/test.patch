@@ -1,0 +1,32 @@
+diff --git a/test/test_lnodes.py b/test/test_lnodes.py
+index f4cdc319..5ceac3b6 100644
+--- a/test/test_lnodes.py
++++ b/test/test_lnodes.py
+@@ -1,4 +1,6 @@
+ import importlib
++import sys
++from pathlib import Path
+ 
+ import numpy as np
+ import pytest
+@@ -40,7 +42,8 @@ def test_gemm(dtype):
+     ffibuilder = FFI()
+     ffibuilder.cdef(decl + ";")
+     ffibuilder.set_source(f"_gemm_{c_scalar}", c_code)
+-    ffibuilder.compile(verbose=True)
++    path = ffibuilder.compile(verbose=True)
++    sys.path.insert(0, str(Path(path).parent))
+     _gemm = importlib.import_module(f"_gemm_{c_scalar}")
+     gemm = _gemm.lib.gemm
+     ffi = _gemm.ffi
+@@ -83,7 +86,8 @@ def test_gemv(dtype):
+     ffibuilder = FFI()
+     ffibuilder.cdef(decl + ";")
+     ffibuilder.set_source(f"_gemv_{c_scalar}", c_code)
+-    ffibuilder.compile(verbose=True)
++    path = ffibuilder.compile(verbose=True)
++    sys.path.insert(0, str(Path(path).parent))
+     _gemv = importlib.import_module(f"_gemv_{c_scalar}")
+     gemv = _gemv.lib.gemm
+     ffi = _gemv.ffi
+-- 
