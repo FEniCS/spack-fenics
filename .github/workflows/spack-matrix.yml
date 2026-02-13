@@ -78,7 +78,7 @@ jobs:
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
       - name: Run tests
         shell: spack-bash {0}
-        if: contains(matrix.spec, "%gcc@13")
+        if: contains(matrix.spec, '%gcc@13')
         run: |
           spack env activate ./env
           spack install --add catch2 %gcc@13 cmake %gcc@13 py-fenics-ffcx
