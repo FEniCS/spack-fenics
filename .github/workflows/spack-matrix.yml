@@ -80,7 +80,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-fenics-ffcx
+          spack install --add py-fenics-ffcx catch2
           spack load --first catch2 cmake py-fenics-ffcx
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
