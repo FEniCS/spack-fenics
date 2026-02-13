@@ -88,6 +88,8 @@ class FenicsDolfinx(CMakePackage):
     depends_on("superlu-dist", when="+superlu-dist")
 
     for ver in ("main", "0.10", "0.9", "0.8", "0.7", "0.6"):
+        depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
+        depends_on(f"fenics-basix@{ver}", when=f"@{ver}")
         depends_on(f"py-fenics-ffcx@{ver}", when=f"@{ver}", type="test")
     depends_on("catch2", type="test")
 
