@@ -62,7 +62,7 @@ jobs:
       matrix:
         # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
         version: ["main", "0.10", "0.9", "0.8"]
-        main_spec: ["build_type=Developer %%c,cxx=clang@18 ^openmpi", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%c,cxx=gcc@13 ^mpich"]
+        main_spec: ["build_type=Developer %%c,cxx=clang@18 ^openmpi", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^mpich"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -83,8 +83,8 @@ jobs:
           spack load --first catch2 cmake fenics-dolfinx py-fenics-ffcx
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
-          cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
-          cmake --build build/test
+          spack build-env fenics-dolfinx -- cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
+          spack build-env fenics-dolfinx -- cmake --build build/test
           cd build/test
           ctest -V --output-on-failure -R unittests_np_1
           ctest -V --output-on-failure -R unittests_np_3
