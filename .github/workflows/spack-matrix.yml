@@ -80,7 +80,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack load --first catch2 cmake py-fenics-ffcx
+          spack load --first catch2 cmake fenics-dolfinx py-fenics-ffcx
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
           cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
