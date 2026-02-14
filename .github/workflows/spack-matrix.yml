@@ -63,7 +63,7 @@ jobs:
         # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
         # NOTE: py-fenics-* must be built with same compiler as fenics-*.
         version: ["main", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %clang@18 ^openmpi py-fenics-basix %clang@18 py-fenics-ffcx catch2", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %gcc@13 ^mpich py-fenics-basix %gcc@13 py-fenics-ffcx catch2"]
+        spec: ["build_type=Developer %clang@18 ^openmpi py-fenics-basix py-fenics-ffcx catch2", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %gcc@13 ^mpich py-fenics-basix py-fenics-ffcx catch2"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
