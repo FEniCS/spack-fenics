@@ -6,7 +6,6 @@ inputs:
     required: true
     type: string
 runs:
-  using: "composite"
   steps:
     - name: Install dependencies
       shell: sh
@@ -33,7 +32,7 @@ runs:
         spack config get repos
         spack repo list
 
-    - name: add cache
+    - name: Add cache
       shell: spack-bash {0}
       run: |
          spack mirror add develop https://binaries.spack.io/develop
