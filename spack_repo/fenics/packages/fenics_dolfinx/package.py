@@ -17,7 +17,9 @@ class FenicsDolfinx(CMakePackage):
     license("LGPL-3.0-or-later")
 
     version("main", branch="main", no_cache=True)
-    version("0.10.0.post4", sha256="3f827a88ab52843fbd7a5cc7814ecba165bdec65fd10df05eb031c286e8cd605")
+    version(
+        "0.10.0.post4", sha256="3f827a88ab52843fbd7a5cc7814ecba165bdec65fd10df05eb031c286e8cd605"
+    )
     version(
         "0.10.0.post2", sha256="eae83794fee8141c80c59c03a2f4ac208af2b62c8f36e5d19c93e0d279029f52"
     )
@@ -59,6 +61,7 @@ class FenicsDolfinx(CMakePackage):
     variant("slepc", default=False, description="SLEPc support")
     variant("adios2", default=False, description="ADIOS2 support")
     variant("petsc", default=False, description="PETSc support")
+    variant("superlu-dist", default=False, description="SuperLU_DIST support", when="@main")
 
     conflicts("~petsc", when="+slepc", msg="+slepc requires +petsc")
 
@@ -66,7 +69,8 @@ class FenicsDolfinx(CMakePackage):
     depends_on("cmake@3.19:", when="@:0.8", type="build")
     depends_on("pkgconfig", type="build")
     depends_on("mpi")
-    depends_on("hdf5+mpi")
+    # HDF5Interface.cpp #if H5_VERSION_GE are not precise enough.
+    depends_on("hdf5+mpi@1.12:")
     depends_on("boost@1.70:")
     depends_on("boost@1.70:+timer", when="@:0.9")
     depends_on("pugixml")
@@ -80,6 +84,8 @@ class FenicsDolfinx(CMakePackage):
     depends_on("adios2@:2.10", when="@:0.9 +adios2")
     depends_on("adios2@2.8.1:", when="@0.9: +adios2")
     depends_on("adios2+mpi", when="+adios2")
+
+    depends_on("superlu-dist", when="+superlu-dist")
 
     for ver in ("main", "0.10", "0.9", "0.8", "0.7", "0.6"):
         depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
@@ -100,4 +106,5 @@ class FenicsDolfinx(CMakePackage):
             self.define("DOLFINX_ENABLE_KAHIP", "partitioners=kahip" in self.spec),
             self.define("DOLFINX_ENABLE_PARMETIS", "partitioners=parmetis" in self.spec),
             self.define("DOLFINX_ENABLE_SCOTCH", "partitioners=scotch" in self.spec),
+            self.define("DOLFINX_ENABLE_SUPERLU_DIST", "superlu-dist" in self.spec),
         ]
