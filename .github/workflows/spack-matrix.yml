@@ -60,9 +60,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Issue: clang sometimes likes stub or Intel MPI
+        # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
+        # NOTE: py-fenics-* must be built with same compiler as fenics-*.
         version: ["main", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %clang@18 ^openmpi", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %gcc@13 ^mpich"]
+        spec: ["build_type=Developer %clang@18 ^openmpi py-fenics-basix %clang@18 py-fenics-ffcx catch2", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %gcc@13 ^mpich py-fenics-basix %gcc@13 py-fenics-ffcx catch2"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -80,7 +81,6 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-fenics-ffcx catch2
           spack load --first catch2 cmake py-fenics-ffcx
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
