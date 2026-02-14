@@ -37,7 +37,6 @@ class PyFenicsFfcx(PythonPackage):
 
     # patch("test.patch", when="@main")
 
-
     # CFFI is required at runtime for JIT support
     depends_on("py-cffi", type=("build", "run"))
     depends_on("py-numpy@1.21:", type=("build", "run"))
