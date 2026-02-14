@@ -37,7 +37,7 @@ runs:
       shell: spack-bash {0}
       run: |
          spack mirror add develop https://binaries.spack.io/develop
-         spack config add "packages:all:require:os=ubuntu24.04"
+         spack config add "packages:all:require:[os=ubuntu24.04]"
          spack buildcache keys --install --trust
 
     - name: Compiler find
