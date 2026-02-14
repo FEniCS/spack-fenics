@@ -78,7 +78,7 @@ jobs:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }} ${{ extra_spec }}
+          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }} ${{ matrix.extra_spec }}
       - name: Run tests
         shell: spack-bash {0}
         run: |
