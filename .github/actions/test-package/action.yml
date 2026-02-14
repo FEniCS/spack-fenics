@@ -15,11 +15,9 @@ runs:
         apt-get install -y file bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release patch python3 tar unzip xz-utils zstd
 
     - name: Set up spack
-      uses: spack/setup-spack@v2
+      uses: spack/setup-spack@v3
       with:
-        ref: develop
-        color: true
-        path: spack
+        spack_ref: develop
 
     - name: Install clang-18
       shell: sh
@@ -37,7 +35,7 @@ runs:
       shell: spack-bash {0}
       run: |
          spack mirror add develop https://binaries.spack.io/develop
-         spack config add "packages:all:require:[os=ubuntu24.04]"
+         spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
          spack buildcache keys --install --trust
 
     - name: Compiler find
