@@ -6,6 +6,7 @@ inputs:
     required: true
     type: string
 runs:
+  using: "composite"
   steps:
     - name: Install dependencies
       shell: sh
@@ -46,7 +47,7 @@ runs:
       shell: spack-bash {0}
       run: spack env create -d ./env
 
-    - name: Add spec
+    - name: Add specs
       shell: spack-bash {0}
       run: spack -e ./env add ${{ inputs.spec }}
 
