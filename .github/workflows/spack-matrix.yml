@@ -83,7 +83,8 @@ jobs:
           spack load --first catch2 cmake fenics-dolfinx py-fenics-ffcx
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
-          source <(spack build-env --dump /dev/stdout fenics-dolfinx)
+          spack build-env --dump fenics-dolfinx-build-env.sh fenics-dolfinx
+          source fenics-dolfinx-build-env.sh
           cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
           cmake --build build/test
           cd build/test
