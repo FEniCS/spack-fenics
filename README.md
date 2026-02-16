@@ -40,7 +40,7 @@ Run `spack repo list` again to show, e.g.:
 Package definitions in `fenics` will now take precedence over duplicates in
 `builtin`.
 
-Running `spack spec -N fenics-dolfinx@0.9` should give output like:
+Running `spack spec -N fenics-dolfinx@0.9` should give, e.g.:
 
 ```
  -   fenics.fenics-dolfinx@0.9.0~adios2~ipo~petsc~slepc build_system=cmake build_type=RelWithDebInfo generator=make partitioners:=parmetis platform=darwin os=sequoia target=m1 %c,cxx=apple-clang@17.0.0
@@ -53,9 +53,8 @@ where `fenics.fenics-dolfinx` implies the use of the `fenics` repository.
 
 We aim to keep the last three `x` versions `0.x.*` of `py-fenics-dolfinx`
 building with PETSc, SLEPc, ADIOS2, Parmetis, SCOTCH and KaHIP support using
-Ubuntu LTS GCC and clang. As of 12/2025 we do not run unit tests - users should
-execute these themselves and assess working/non-working functionality on their
-systems.
+Ubuntu LTS-provided GCC and clang. Due to an identified performance issue we
+are currently not running the test suite for `py-fenics-dolfinx@0.8`.
 
 ## Uses
 
@@ -63,6 +62,33 @@ systems.
    the upstream `builtin` repository.
 2. Allows experimentation with FEniCS Spack packages without having to maintain
    a full branch of the upstream `builtin` repository.
+
+## Observations
+
+### C++ ABIs
+
+We have observed issues when two different compilers are selected by Spack to
+build C++ components. This can lead to missing symbols at runtime error due to
+different name mangling conventions and application binary interfaces (ABIs).
+If this happens you can push the compiler down the Spack concretisation using
+`%%`, e.g.:
+
+    spack spec -N py-fenics-dolfinx %%clang@18
+
+or a more precise approach using `^` and `%`, e.g.:
+
+    spack spec -N py-fenics-dolfinx %clang@18 ^fenics-dolfinx %clang@18 ^py-fenics-basix %clang@18 ^fenics-basix %clang@18
+
+### Reproducing complex build environment
+
+It is useful to use Spack's exact environment to build C++ programmes,
+particularly when it differs the user's default environment (e.g. special
+compilers):
+
+    spack load cmake fenics-dolfinx py-fenics-ffcx
+    spack build-spec --dump spack-build-env.sh fenics-dolfinx
+    source spack-build-env.sh
+    # Execute e.g. cmake 
 
 ## Developer notes
 
