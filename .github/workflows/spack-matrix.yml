@@ -216,9 +216,10 @@ jobs:
       - uses: actions/checkout@v5
         with:
           path: spack-fenics
+      # NOTE: Python built with GCC, otherwise cffi can try for an odd compiler.
       - uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: py-fenics-ffcx@${{ matrix.version }} %%gcc@13
+          spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@13
       # NOTE: ffcx version 0.8 currently broken
       - name: Run tests
         if: ${{ matrix.version != '0.8' }}
