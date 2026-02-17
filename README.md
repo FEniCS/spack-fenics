@@ -81,14 +81,13 @@ or a more precise approach using `^` and `%`, e.g.:
 
 ### Reproducing complex build environment
 
-It is useful to use Spack's exact environment to build C++ programmes,
-particularly when it differs the user's default environment (e.g. special
-compilers):
+To build C++ applications using Spack's build environment (e.g. when it used
+special compilers to build fenics-dolfinx):
 
     spack load cmake fenics-dolfinx py-fenics-ffcx
     spack build-spec --dump spack-build-env.sh fenics-dolfinx
     source spack-build-env.sh
-    # Execute e.g. cmake 
+    # Execute e.g. cmake, should use Spack's compiler-wrapper 
 
 ## Developer notes
 
