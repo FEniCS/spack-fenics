@@ -210,8 +210,8 @@ jobs:
           spack env activate ./env
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
-          python -m pytest -n auto -m "petsc4py and adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
-          mpiexec -n 3 python -m pytest -m "petsc4py and adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
+          python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
+          mpiexec -n 3 python -m pytest -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
 
   py-fenics-ffcx:
     needs: style-check
