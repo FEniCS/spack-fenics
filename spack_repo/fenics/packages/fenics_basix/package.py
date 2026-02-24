@@ -46,3 +46,9 @@ class FenicsBasix(CMakePackage):
     conflicts("%clang@:9.10", msg="fenics-basix requires Clang-10 or newer for C++20 support")
 
     root_cmakelists_dir = "cpp"
+
+    def cmake_args(self):
+        return [
+            "-DBLAS_LIBRARIES=" + self.spec["blas"].libs.joined(),
+            "-DLAPACK_LIBRARIES=" + self.spec["blas"].libs.joined(),
+        ]
