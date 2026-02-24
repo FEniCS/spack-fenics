@@ -28,6 +28,8 @@ class FenicsBasix(CMakePackage):
         version("0.7.0", sha256="9bee81b396ee452eec8d9735f278cb44cb6994c6bc30aec8ed9bb4b12d83fa7f")
         version("0.6.0", sha256="687ae53153c98facac4080dcdc7081701db1dcea8c5e7ae3feb72aec17f83304")
 
+    patch("mdspan.patch", when="@0.10")
+
     variant(
         "build_type",
         default="RelWithDebInfo",
