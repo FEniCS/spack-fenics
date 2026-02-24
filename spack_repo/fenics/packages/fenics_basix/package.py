@@ -47,7 +47,6 @@ class FenicsBasix(CMakePackage):
 
     root_cmakelists_dir = "cpp"
 
-
     def cmake_args(self):
         return [
             "-DBLAS_LIBRARIES=" + self.spec["blas"].libs.joined(),
