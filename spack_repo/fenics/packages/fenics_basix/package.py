@@ -51,6 +51,6 @@ class FenicsBasix(CMakePackage):
 
     def cmake_args(self):
         return [
-            "-DBLAS_LIBRARIES=" + self.spec["blas"].libs.joined(),
-            "-DLAPACK_LIBRARIES=" + self.spec["blas"].libs.joined(),
+            "-DBLAS_LIBRARIES=" + self.spec["blas"].libs.joined(";"),
+            "-DLAPACK_LIBRARIES=" + self.spec["blas"].libs.joined(";"),
         ]
