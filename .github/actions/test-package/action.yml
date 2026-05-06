@@ -15,9 +15,9 @@ runs:
         apt-get install -y file bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release patch python3 tar unzip xz-utils zstd
 
     - name: Set up spack
-      uses: spack/setup-spack@v3
+      uses: spack/setup-spack@main
       with:
-        spack_ref: develop
+        spack_ref: v1.1.1
 
     - name: Install clang-18
       shell: sh

@@ -18,14 +18,14 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
       - name: Fetch Spack CI scripts
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: spack/spack
-          ref: develop
+          ref: develop 
           path: spack-core
       - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.github/workflows/requirements/style/requirements.txt
       - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.flake8
@@ -46,7 +46,7 @@ jobs:
         spec: ["build_type=Developer %gcc@13", "build_type=Developer %clang@18"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -70,7 +70,7 @@ jobs:
       OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -105,7 +105,7 @@ jobs:
         spec: ["%gcc@13"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -124,7 +124,7 @@ jobs:
         spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %clang@18 ^fenics-basix%clang@18"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -175,7 +175,7 @@ jobs:
       OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
@@ -223,7 +223,7 @@ jobs:
         version: ["main", "0.10", "0.9", "0.8"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: spack-fenics
       # NOTE: Python built with GCC, otherwise cffi can try for an odd compiler.
@@ -251,7 +251,7 @@ jobs:
         version: ["main", "2025.2", "2025.1", "2024.2", "2024.1"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           path: spack-fenics
       - uses: ./spack-fenics/.github/actions/test-package
