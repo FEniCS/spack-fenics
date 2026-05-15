@@ -157,7 +157,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.10", "0.9", "0.8"]
-        python-version: ["3.10", "3.13"]
+        python-version: ["3.10", "3.13", "3.14"]
         # NOTE: Overspecification of %%clang@18 to fix ABI issues (std::string related?).
         # NOTE: clang sometimes likes stub or Intel MPI.
         spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2 ^mpich",
