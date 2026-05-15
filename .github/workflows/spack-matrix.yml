@@ -186,7 +186,7 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
+          spack install --deprecated --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance" python/test/unit
