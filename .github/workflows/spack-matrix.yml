@@ -61,7 +61,7 @@ jobs:
       matrix:
         # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
         version: ["main", "0.10", "0.9", "0.8"]
-        main_spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
+        main_spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich~fortran", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -165,7 +165,7 @@ jobs:
         # Test new superlu-dist variant
         include:
           - version: "main"
-            spec: "build_type=Developer %%clang@18 ^mpich ^fenics-dolfinx+superlu-dist"
+            spec: "build_type=Developer %%clang@18 ^mpich~fortran ^fenics-dolfinx+superlu-dist"
             python-version: "3.12"
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
