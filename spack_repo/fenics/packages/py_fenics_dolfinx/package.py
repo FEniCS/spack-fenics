@@ -49,14 +49,15 @@ class PyFenicsDolfinx(PythonPackage):
     depends_on("hdf5", type="build")
     depends_on("pkgconfig", type="build")
 
+    depends_on("python@3.11:", when="@0.11:", type=("build", "run"))
     depends_on("python@3.10:", when="@0.10:", type=("build", "run"))
     depends_on("python@3.9:", when="@0.8:", type=("build", "run"))
     depends_on("python@3.8:3.10", when="@0.6", type=("build", "run"))
 
-    for ver in ["main", "0.10.0.post4", "0.9.0", "0.8.0"]:
+    for ver in ["main", "0.11.0.post0", "0.10.0.post4", "0.9.0", "0.8.0"]:
         depends_on(f"fenics-dolfinx@{ver}", when=f"@{ver}")
 
-    for ver in ["main", "0.10", "0.9", "0.8"]:
+    for ver in ["main", "0.11", "0.10", "0.9", "0.8"]:
         depends_on(f"fenics-basix@{ver}", type=("build", "link"), when=f"@{ver}")
         depends_on(f"py-fenics-basix@{ver} +ufl", type=("build", "run"), when=f"@{ver}")
         depends_on(f"py-fenics-ffcx@{ver}", type=("build", "run"), when=f"@{ver}")
@@ -69,6 +70,7 @@ class PyFenicsDolfinx(PythonPackage):
     ]:
         depends_on(f"py-fenics-ufl@{ufl_ver}", type=("build", "run"), when=f"@{ver}")
 
+    depends_on("py-numpy@2:", when="@0.11:", type=("build", "run"))
     depends_on("py-numpy@1.21:", type=("build", "run"))
     depends_on("py-mpi4py", type=("build", "run"))
 
@@ -90,6 +92,7 @@ class PyFenicsDolfinx(PythonPackage):
     depends_on("py-nanobind@2.5:", when="@0.10:", type="build")
     depends_on("py-nanobind@2:", when="@0.9:", type="build")
     depends_on("py-nanobind@1.8:1.9", when="@0.8", type="build")
+    depends_on("py-scikit-build-core@0.11: +pyproject", when="@0.11:", type="build")
     depends_on("py-scikit-build-core@0.10: +pyproject", when="@0.9:", type="build")
     depends_on("py-scikit-build-core@0.5: +pyproject", when="@0.8:0.9", type="build")
 
