@@ -54,7 +54,7 @@ runs:
       shell: spack-bash {0}
       run: |
         spack -e ./env config add concretizer:unify:true
-        spack -e ./env concretize -j 4
+        spack -e ./env concretize --deprecated -j 4
 
     - name: Install
       shell: spack-bash {0}
