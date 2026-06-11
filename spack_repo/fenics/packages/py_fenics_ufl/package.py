@@ -67,6 +67,7 @@ class PyFenicsUfl(PythonPackage):
         )
         version("2016.2.0", tag="ufl-2016.2.0", commit="962d56f65821fb9c50ca4a5a858882c472243431")
 
+    depends_on("python@3.11:", when="@2026.1.0:", type=("build", "run"))
     depends_on("python@3.10:", when="@2025.2.0:", type=("build", "run"))
     depends_on("python@3.9:", when="@2025.1.0:", type=("build", "run"))
     depends_on("python@3.8:", when="@2023.2.0:", type=("build", "run"))
