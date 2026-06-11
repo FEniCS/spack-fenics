@@ -64,6 +64,7 @@ class PyFenicsDolfinx(PythonPackage):
 
     for ufl_ver, ver in [
         ("main", "main"),
+        ("2026.1", "0.11"),
         ("2025.2", "0.10"),
         ("2024.2", "0.9"),
         ("2024.1", "0.8"),
