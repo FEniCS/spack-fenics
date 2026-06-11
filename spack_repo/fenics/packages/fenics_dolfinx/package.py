@@ -58,7 +58,7 @@ class FenicsDolfinx(CMakePackage):
     variant("slepc", default=False, description="SLEPc support")
     variant("adios2", default=False, description="ADIOS2 support")
     variant("petsc", default=False, description="PETSc support")
-    variant("superlu-dist", default=False, description="SuperLU_DIST support", when="@main")
+    variant("superlu-dist", default=False, description="SuperLU_DIST support", when="@0.11:")
 
     conflicts("~petsc", when="+slepc", msg="+slepc requires +petsc")
 
@@ -81,7 +81,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("adios2@2.8.1:", when="@0.9: +adios2")
     depends_on("adios2+mpi", when="+adios2")
 
-    depends_on("superlu-dist", when="+superlu-dist")
+    depends_on("superlu-dist", when="@0.11: +superlu-dist")
 
     for ver in ("main", "0.10", "0.9", "0.8"):
         depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
