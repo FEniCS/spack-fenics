@@ -18,6 +18,7 @@ class FenicsBasix(CMakePackage):
     license("MIT")
 
     version("main", branch="main", no_cache=True)
+    version("0.11.0", sha256="bb4355f4cd3c98d5e944c2b8596f3240225d0a8ab3bd1344133d2056a7b2c388")
     version(
         "0.10.0.post0", sha256="11a6482fb8d7204fbd77aaf457a9ae3e75db1707b3e30ea2c938eccfee925ea4"
     )

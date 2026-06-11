@@ -22,6 +22,7 @@ class PyFenicsUfl(PythonPackage):
     license("LGPL-3.0-or-later")
 
     version("main", branch="main", no_cache=True)
+    version("2026.1.0", sha256="72c0e4ac3d2f648f30f860fd4e895d96415a77318cb4551c5dbc53dc644b7c96")
     version(
         "2025.2.0.post0", sha256="2182fed6d0fc41fd97244d73fe6aa95e50725e5ba8fe1b3b0f3f4d0215b45534"
     )

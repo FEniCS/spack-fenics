@@ -18,6 +18,7 @@ class PyFenicsFfcx(PythonPackage):
     license("LGPL-3.0-or-later")
 
     version("main", branch="main", no_cache=True)
+    version("0.11.0", sha256="7df1c086c0398b72343a5f047c7e6aa17ea05f1ba123e3e0ca858d6a133b13bd")
     version(
         "0.10.1.post0", sha256="91e15e2586390d0a0b0e9993d63b47b7ae9657e5141fc30271291ea1a2d55d5e"
     )
