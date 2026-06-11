@@ -59,7 +59,7 @@ runs:
     - name: Install
       shell: spack-bash {0}
       run: >
-        spack -e ./env install -j 4 
+        spack -e ./env install --deprecated -j 4 
         --log-format junit
         --log-file log.xml
 
