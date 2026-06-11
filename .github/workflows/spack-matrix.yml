@@ -164,7 +164,7 @@ jobs:
                "build_type=Developer %%clang@18 ^openmpi"]
         # Test new superlu-dist variant
         include:
-          - version: "main"
+          - version: "0.11"
             spec: "build_type=Developer %%clang@18 ^mpich ^fenics-dolfinx+superlu-dist"
             python-version: "3.12"
     env:
