@@ -30,7 +30,7 @@ class PyFenicsBasix(PythonPackage):
 
     depends_on("cxx", type="build")
 
-    for ver in ("main", "0.10.0.post0", "0.10.0", "0.9.0", "0.8.0"):
+    for ver in ("main", "0.11.0", "0.10.0.post0", "0.10.0", "0.9.0", "0.8.0"):
         depends_on(f"fenics-basix@{ver}", type=("build", "run"), when=f"@{ver}")
 
     # See python/CMakeLists.txt
@@ -39,21 +39,25 @@ class PyFenicsBasix(PythonPackage):
     depends_on("cmake@3.16:", when="@:0.7", type="build")
 
     # See python/pyproject.toml
+    depends_on("python@3.11:", when="@0.11:", type=("build", "run"))
     depends_on("python@3.10:", when="@0.10:", type=("build", "run"))
     depends_on("python@3.9:", when="@0.8:", type=("build", "run"))
     depends_on("python@3.8:", when="@:0.7", type=("build", "run"))
+    depends_on("py-numpy@2:", when="@:0.11", type=("build", "run"))
     depends_on("py-numpy@1.21:", type=("build", "run"))
     depends_on("py-pybind11@2.9.1:", when="@:0.7", type="build")
     depends_on("py-setuptools@42:", when="@:0.7", type="build")
     depends_on("py-nanobind@2.5:", when="@0.10:", type="build")
     depends_on("py-nanobind@2:", when="@0.9:", type="build")
     depends_on("py-nanobind@1.6.0:", when="@0.8:0.9", type="build")
+    depends_on("py-scikit-build-core+pyproject@0.11:", when="@0.11:", type="build")
     depends_on("py-scikit-build-core+pyproject@0.10:", when="@0.10:", type="build")
     depends_on("py-scikit-build-core+pyproject@0.5.0:", when="@0.8:0.9", type="build")
 
     with when("+ufl"):
         for ufl_ver, ver in [
             ("main", "main"),
+            ("2026.1", "0.11"),
             ("2025.2", "0.10"),
             ("2024.2", "0.9"),
             ("2024.1", "0.8"),
