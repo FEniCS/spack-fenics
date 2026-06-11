@@ -52,7 +52,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("parmetis", when="partitioners=parmetis")
     depends_on("scotch+mpi", when="partitioners=scotch")
     # 0.9: finds SCOTCH in CMake CONFIG mode, which requires SCOTCH 7.0.1:
-    depends_on("scotch@7.0.1:", when="@0.9:")
+    depends_on("scotch@7.0.1:", when="@0.9: partitioners=scotch")
 
     variant("slepc", default=False, description="SLEPc support")
     variant("adios2", default=False, description="ADIOS2 support")
