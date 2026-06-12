@@ -22,7 +22,7 @@ runs:
     - name: Install clang-18
       shell: sh
       if: contains(inputs.spec, 'clang@18')
-      run: apt-get install -y clang-18
+      run: apt-get install -y clang-18 flang-18
 
     - name: Add repos
       shell: spack-bash {0}
