@@ -17,12 +17,12 @@ runs:
     - name: Set up spack
       uses: spack/setup-spack@v3
       with:
-        spack_ref: develop
+        spack_ref: v1.1.1
 
     - name: Install clang-18
       shell: sh
-      if: contains(inputs.spec, 'clang@18')
-      run: apt-get install -y clang-18
+      if: contains(inputs.spec, 'llvm@')
+      run: apt-get install -y clang-18 flang-18
 
     - name: Add repos
       shell: spack-bash {0}
@@ -40,7 +40,9 @@ runs:
 
     - name: Compiler find
       shell: spack-bash {0}
-      run: spack compiler find
+      run: |
+        spack compiler find
+        cat $GITHUB_WORKSPACE/spack/etc/spack/packages.yaml
 
     - name: Create env
       shell: spack-bash {0}
@@ -54,12 +56,12 @@ runs:
       shell: spack-bash {0}
       run: |
         spack -e ./env config add concretizer:unify:true
-        spack -e ./env concretize -j 4
+        spack -e ./env concretize --deprecated -j 4
 
     - name: Install
       shell: spack-bash {0}
       run: >
-        spack -e ./env install -j 4 
+        spack -e ./env install --deprecated -j 4 
         --log-format junit
         --log-file log.xml
 
