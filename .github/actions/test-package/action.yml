@@ -40,7 +40,9 @@ runs:
 
     - name: Compiler find
       shell: spack-bash {0}
-      run: spack compiler find
+      run: |
+        spack compiler find
+        cat $GITHUB_WORKSPACE/spack/etc/spack/packages.yaml
 
     - name: Create env
       shell: spack-bash {0}

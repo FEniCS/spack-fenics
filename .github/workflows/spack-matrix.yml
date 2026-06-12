@@ -42,7 +42,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %gcc@13", "build_type=Developer %clang@18"]
+        spec: ["build_type=Developer %gcc@13", "build_type=Developer %llvm@18"]
 
     steps:
       - uses: actions/checkout@v5
@@ -61,7 +61,7 @@ jobs:
       matrix:
         # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        main_spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
+        main_spec: ["build_type=Developer %%c,cxx,fortran=llvm@18 ^mpich", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -120,7 +120,7 @@ jobs:
       matrix:
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
         # Make sure fenics-basix and py-fenics-basix build with same compiler/ABI.
-        spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %clang@18 ^fenics-basix%clang@18"]
+        spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %llvm@18 ^fenics-basix%llvm@18"]
 
     steps:
       - uses: actions/checkout@v5
@@ -158,14 +158,14 @@ jobs:
       matrix:
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
         python-version: ["3.11", "3.13"]
-        # NOTE: Overspecification of %%clang@18 to fix ABI issues (std::string related?).
+        # NOTE: Overspecification of %%llvm@18 to fix ABI issues (std::string related?).
         # NOTE: clang sometimes likes stub or Intel MPI.
         spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2 ^mpich",
-               "build_type=Developer %%clang@18 ^openmpi"]
+               "build_type=Developer %%llvm@18 ^openmpi"]
         # Test new superlu-dist variant
         include:
           - version: "0.11"
-            spec: "build_type=Developer %%clang@18 ^mpich ^fenics-dolfinx+superlu-dist"
+            spec: "build_type=Developer %%llvm@18 ^mpich ^fenics-dolfinx+superlu-dist"
             python-version: "3.12"
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
