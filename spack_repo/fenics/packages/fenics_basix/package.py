@@ -18,17 +18,14 @@ class FenicsBasix(CMakePackage):
     license("MIT")
 
     version("main", branch="main", no_cache=True)
+    version("0.11.0", sha256="bb4355f4cd3c98d5e944c2b8596f3240225d0a8ab3bd1344133d2056a7b2c388")
     version(
         "0.10.0.post0", sha256="11a6482fb8d7204fbd77aaf457a9ae3e75db1707b3e30ea2c938eccfee925ea4"
     )
     version("0.10.0", sha256="b93221dac7d3fea8c10e77617f6201036de35d0c5437440b718de69a28c3773f")
     version("0.9.0", sha256="60e96b2393084729b261cb10370f0e44d12735ab3dbd1f15890dec23b9e85329")
-    version("0.8.0", sha256="b299af82daf8fa3e4845e17f202491fe71b313bf6ab64c767a5287190b3dd7fe")
     with default_args(deprecated=True):
-        version("0.7.0", sha256="9bee81b396ee452eec8d9735f278cb44cb6994c6bc30aec8ed9bb4b12d83fa7f")
-        version("0.6.0", sha256="687ae53153c98facac4080dcdc7081701db1dcea8c5e7ae3feb72aec17f83304")
-
-    patch("mdspan.patch", when="@0.10")
+        version("0.8.0", sha256="b299af82daf8fa3e4845e17f202491fe71b313bf6ab64c767a5287190b3dd7fe")
 
     variant(
         "build_type",
@@ -48,9 +45,3 @@ class FenicsBasix(CMakePackage):
     conflicts("%clang@:9.10", msg="fenics-basix requires Clang-10 or newer for C++20 support")
 
     root_cmakelists_dir = "cpp"
-
-    def cmake_args(self):
-        return [
-            "-DBLAS_LIBRARIES=" + self.spec["blas"].libs.joined(";"),
-            "-DLAPACK_LIBRARIES=" + self.spec["blas"].libs.joined(";"),
-        ]

@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
         spec: ["build_type=Developer %gcc@13", "build_type=Developer %clang@18"]
 
     steps:
@@ -60,8 +60,8 @@ jobs:
       fail-fast: false
       matrix:
         # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
-        version: ["main", "0.10", "0.9", "0.8"]
-        main_spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
+        main_spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich~fortran", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -100,7 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
         spec: ["%gcc@13"]
 
     steps:
@@ -118,7 +118,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
         # Make sure fenics-basix and py-fenics-basix build with same compiler/ABI.
         spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %clang@18 ^fenics-basix%clang@18"]
 
@@ -144,8 +144,8 @@ jobs:
         shell: spack-bash {0}
         run: |
           spack env activate ./env
-          spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          spack install --deprecated --add py-pytest py-sympy py-pytest-xdist
+          spack stage --deprecated py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
           spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
           python -m pytest -n auto -k "not test_all_elements_included" test/
 
@@ -156,16 +156,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
-        python-version: ["3.10", "3.13"]
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
+        python-version: ["3.11", "3.13"]
         # NOTE: Overspecification of %%clang@18 to fix ABI issues (std::string related?).
         # NOTE: clang sometimes likes stub or Intel MPI.
         spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2 ^mpich",
-               "build_type=Developer %%clang@18 ^openmpi"]
+               "build_type=Developer %%clang@18 ^mpich~fortran"]
         # Test new superlu-dist variant
         include:
-          - version: "main"
-            spec: "build_type=Developer %%clang@18 ^mpich ^fenics-dolfinx+superlu-dist"
+          - version: "0.11"
+            spec: "build_type=Developer %%gcc@13 ^fenics-dolfinx+superlu-dist ^mpich"
             python-version: "3.12"
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
@@ -219,7 +219,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["main", "0.10", "0.9", "0.8"]
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
 
     steps:
       - uses: actions/checkout@v5
