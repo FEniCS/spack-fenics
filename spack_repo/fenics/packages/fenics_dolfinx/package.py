@@ -65,6 +65,7 @@ class FenicsDolfinx(CMakePackage):
 
     conflicts("~petsc", when="+slepc", msg="+slepc requires +petsc")
 
+    depends_on("cmake@3.26:", when="@0.11:", type="build")
     depends_on("cmake@3.21:", when="@0.9:", type="build")
     depends_on("cmake@3.19:", when="@:0.8", type="build")
     depends_on("pkgconfig", type="build")
@@ -81,8 +82,8 @@ class FenicsDolfinx(CMakePackage):
         depends_on("petsc+mpi+shared")
         depends_on("slepc")
 
-    depends_on("adios2@:2.10", when="@:0.9 +adios2")
     depends_on("adios2@2.8.1:", when="@0.9: +adios2")
+    depends_on("adios2@:2.10", when="@:0.9 +adios2")
     depends_on("adios2+mpi", when="+adios2")
 
     depends_on("superlu-dist", when="@0.11: +superlu-dist")

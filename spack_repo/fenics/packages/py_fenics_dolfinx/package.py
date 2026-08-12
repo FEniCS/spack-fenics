@@ -47,6 +47,7 @@ class PyFenicsDolfinx(PythonPackage):
     depends_on("c", type="build")
     depends_on("cxx", type="build")
 
+    depends_on("cmake@3.26:", when="@0.11:", type="build")
     depends_on("cmake@3.21:", when="@0.9:", type="build")
     depends_on("cmake@3.19:", when="@:0.8", type="build")
     depends_on("hdf5", type="build")
@@ -93,10 +94,11 @@ class PyFenicsDolfinx(PythonPackage):
 
     depends_on("py-cffi", type=("build", "run"))
 
+    depends_on("py-nanobind@2.9.2:", when="@0.11:", type="build")
     depends_on("py-nanobind@2.5:", when="@0.10:", type="build")
     depends_on("py-nanobind@2:", when="@0.9:", type="build")
     depends_on("py-nanobind@1.8:1.9", when="@0.8", type="build")
-    depends_on("py-scikit-build-core@0.11: +pyproject", when="@0.11:", type="build")
+    depends_on("py-scikit-build-core@1: +pyproject", when="@0.11:", type="build")
     depends_on("py-scikit-build-core@0.10: +pyproject", when="@0.9:", type="build")
     depends_on("py-scikit-build-core@0.5: +pyproject", when="@0.8:0.9", type="build")
 
