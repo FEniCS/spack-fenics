@@ -25,11 +25,11 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: spack/spack
-          ref: develop
+          ref: v1.2.2
           path: spack-core
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.github/workflows/requirements/style/requirements.txt
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/pyproject.toml
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/refs/heads/develop/.ci/style_check.sh
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/.github/workflows/requirements/style/requirements.txt
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/pyproject.toml
+      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/.ci/style_check.sh
       - run: pip install -r requirements.txt
       - run: chmod +x style_check.sh
       - run: ./style_check.sh HEAD^
