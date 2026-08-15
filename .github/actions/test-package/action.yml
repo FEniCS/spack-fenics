@@ -35,9 +35,8 @@ runs:
     - name: Add cache
       shell: spack-bash {0}
       run: |
-         spack mirror add develop https://binaries.spack.io/develop
+         spack mirror add --unsigned local-buildcache oci://ghcr.io/fenics/spack-buildcache
          spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
-         spack buildcache keys --install --trust
 
     - name: Compiler find
       shell: spack-bash {0}
