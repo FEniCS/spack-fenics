@@ -36,7 +36,12 @@ runs:
       shell: spack-bash {0}
       run: |
          spack mirror add --unsigned local-buildcache oci://ghcr.io/fenics/spack-buildcache
-         spack mirror set --push --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache
+         # Own package (auto-created on first push): the shared
+         # 'spack-buildcache' package above was created by dolfinx's CI,
+         # and GHCR ties push access to a package's originating repo, so
+         # this repo's GITHUB_TOKEN gets a 403 trying to push there.
+         spack mirror add --unsigned --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN \
+           push-buildcache oci://ghcr.io/fenics/spack-fenics-buildcache
          spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
 
     - name: Compiler find
@@ -76,7 +81,7 @@ runs:
       shell: spack-bash {0}
       run: >
         spack -e ./env buildcache push --base-image ubuntu:24.04
-        --allow-missing --update-index local-buildcache
+        --allow-missing --update-index push-buildcache
 
     - name: Upload log
       if: success() || failure()
