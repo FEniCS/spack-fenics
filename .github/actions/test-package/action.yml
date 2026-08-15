@@ -36,6 +36,7 @@ runs:
       shell: spack-bash {0}
       run: |
          spack mirror add --unsigned local-buildcache oci://ghcr.io/fenics/spack-buildcache
+         spack mirror set --push --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache
          spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
 
     - name: Compiler find
@@ -59,9 +60,23 @@ runs:
     - name: Install
       shell: spack-bash {0}
       run: >
-        spack -e ./env install --deprecated -j 4 
+        spack -e ./env install --deprecated -j 4
         --log-format junit
         --log-file log.xml
+
+    # Skipped for pull requests from forks: those run with a read-only
+    # GITHUB_TOKEN regardless of the 'permissions' block, so the push
+    # would 401 as soon as it had anything to upload, failing a
+    # contributor's job on a step that tests nothing. Reads are
+    # anonymous, so forked-repo builds still take from the cache.
+    - name: Push packages to cache
+      if: >-
+        ${{ !cancelled() && (github.event_name != 'pull_request'
+        || github.event.pull_request.head.repo.full_name == github.repository) }}
+      shell: spack-bash {0}
+      run: >
+        spack -e ./env buildcache push --base-image ubuntu:24.04
+        --allow-missing --update-index local-buildcache
 
     - name: Upload log
       if: success() || failure()

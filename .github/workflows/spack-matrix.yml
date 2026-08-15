@@ -16,6 +16,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  GITHUB_USER: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   style-check:
     name: ✨
@@ -45,6 +49,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -63,6 +70,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -104,6 +114,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -122,6 +135,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -160,6 +176,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -223,6 +242,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -251,6 +273,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-latest
     container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
