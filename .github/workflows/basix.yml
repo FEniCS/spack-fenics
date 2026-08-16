@@ -1,0 +1,88 @@
+name: basix
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * MON" # weekly, Mondays 0200
+
+# Cancel superseded runs: a new commit on a pull request makes the
+# previous run's result irrelevant. Pushes to 'main' and scheduled runs
+# are left to finish. The group is per-workflow, so the packages do not
+# cancel each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GITHUB_USER: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  style-check:
+    uses: ./.github/workflows/style.yml
+
+  fenics-basix:
+    needs: style-check
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
+        spec: ["build_type=Developer %gcc@13", "build_type=Developer %clang@18"]
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+
+  py-fenics-basix:
+    needs: style-check
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
+        # Make sure fenics-basix and py-fenics-basix build with same compiler/ABI.
+        spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %clang@18 ^fenics-basix%clang@18"]
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+      - name: Run tests
+        if: ${{ matrix.version != '0.8' }}
+        shell: spack-bash {0}
+        run: |
+          spack env activate ./env
+          spack install --add py-pytest py-sympy py-pytest-xdist
+          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          python -m pytest -n auto test/
+      # NOTE: 0.8 has test_all_elements_included broken
+      - name: Run tests
+        if: ${{ matrix.version == '0.8' }}
+        shell: spack-bash {0}
+        run: |
+          spack env activate ./env
+          spack install --deprecated --add py-pytest py-sympy py-pytest-xdist
+          spack stage --deprecated py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          python -m pytest -n auto -k "not test_all_elements_included" test/
