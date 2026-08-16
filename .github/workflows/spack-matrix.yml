@@ -93,16 +93,32 @@ jobs:
         with:
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }} py-fenics-ffcx catch2 cmake
       # FFCx compilation of poisson.py fails in ffcx/codegeneration/C/finite_element.py
+      #
+      # NOTE: 'spack build-env' is deliberately not used to set up this step.
+      # It reconstructs the *build* environment, which needs the package's
+      # build-only dependencies (sed, perl, m4, autoconf, compiler-wrapper,
+      # ...) to be installed. Those are not installed when the spec is served
+      # whole from the buildcache, and the step then dies with "Not all
+      # dependencies of fenics-dolfinx are installed". Compiling the tests
+      # only needs the *runtime* environment of the installed library, which
+      # is what 'spack load' provides; this is how DOLFINx's own ci.yml
+      # builds cpp/test.
       - name: Run tests (skip 0.8)
         shell: spack-bash {0}
         if: ${{ matrix.version != '0.8' }}
+        env:
+          # The compilers are externals found by 'spack compiler find', so
+          # they are not loadable specs and 'spack load' cannot put them in
+          # the environment. Name them explicitly, matching the compiler in
+          # the matrix spec, so the tests are built with the same compiler as
+          # the library they link against.
+          CC: ${{ contains(matrix.main_spec, 'clang@18') && 'clang-18' || 'gcc' }}
+          CXX: ${{ contains(matrix.main_spec, 'clang@18') && 'clang++-18' || 'g++' }}
         run: |
           spack env activate ./env
           spack load --first catch2 cmake fenics-dolfinx py-fenics-ffcx
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
-          spack build-env --dump fenics-dolfinx-build-env.sh fenics-dolfinx
-          source fenics-dolfinx-build-env.sh
           cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
           cmake --build build/test
           cd build/test
