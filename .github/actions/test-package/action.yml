@@ -57,15 +57,13 @@ runs:
          # filled from somewhere other than a runner. Note this also means the
          # unpadded shared 'spack-buildcache' above can no longer be read.
          spack config add "config:install_tree:padded_length:128"
-         # Use the netlib reference implementation for BLAS/LAPACK. Both
-         # virtuals are set together: netlib-lapack provides each, and pinning
-         # only blas would let openblas back in as the lapack provider.
-         # These are requirements, not 'packages:all:providers' preferences:
-         # the concretizer reuses specs from the buildcache by default, and
-         # reuse outranks a preference, so an openblas-based spec already in
-         # the cache would be picked up instead.
-         spack config add "packages:blas:require:netlib-lapack"
-         spack config add "packages:lapack:require:netlib-lapack"
+         # OpenBLAS for BLAS/LAPACK. This is spack's default provider, but
+         # both virtuals are stated explicitly so the choice does not depend
+         # on that default, and so a future change here has to set the two
+         # together: pinning only blas would leave the other virtual free to
+         # pick a different provider.
+         spack config add "packages:blas:require:openblas"
+         spack config add "packages:lapack:require:openblas"
 
     - name: Compiler find
       shell: spack-bash {0}
@@ -83,6 +81,18 @@ runs:
       shell: spack-bash {0}
       run: |
         spack -e ./env config add concretizer:unify:true
+        # Do not let the buildcache steer the solve. With reuse on (spack's
+        # default) the concretizer prefers specs it finds in the mirrors, so
+        # the resulting hashes depend on what the cache happens to hold at
+        # that moment. With 66 jobs pushing to one mirror, that moves under
+        # us: a cache warmed for one solve is asked for different hashes by
+        # the next, and jobs rebuild large parts of the graph from source.
+        # Turning reuse off makes the solve a function of the recipes and
+        # this config alone, so warmed hashes are the ones CI asks for.
+        # Binaries are still installed from the cache whenever a hash
+        # matches. DOLFINx's own CI environment sets this for the same
+        # reason.
+        spack -e ./env config add concretizer:reuse:false
         spack -e ./env concretize --deprecated -j 4
 
     - name: Install
