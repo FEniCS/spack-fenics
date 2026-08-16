@@ -18,6 +18,7 @@ runs:
       uses: spack/setup-spack@v3
       with:
         spack_ref: v1.2.2
+        # spack/spack-packages @ 2026-08-15
         packages_ref: f5642ce3dafc940e61f20a277e829f5edf5bd2d4
 
     - name: Install clang-18

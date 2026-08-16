@@ -23,8 +23,7 @@ env:
 jobs:
   style-check:
     name: ✨
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/setup-python@v7
         with:
@@ -47,7 +46,7 @@ jobs:
 
   fenics-basix:
     needs: style-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ubuntu:24.04
     permissions:
       contents: read
@@ -68,7 +67,7 @@ jobs:
 
   fenics-dolfinx:
     needs: style-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ubuntu:24.04
     permissions:
       contents: read
@@ -114,6 +113,17 @@ jobs:
           # the library they link against.
           CC: ${{ contains(matrix.main_spec, 'clang@18') && 'clang-18' || 'gcc' }}
           CXX: ${{ contains(matrix.main_spec, 'clang@18') && 'clang++-18' || 'g++' }}
+          # dolfinx's cpp/test adds -Wno-c2y-extensions for any compiler
+          # identifying as Clang, with no version guard, but the flag only
+          # exists from Clang 19; clang-18 rejects it as an unknown warning
+          # option. It used to be harmless because 'spack build-env' put
+          # spack's compiler wrapper in CXX and the wrapper drops -Werror
+          # (config:flags:keep_werror), leaving a warning. Without the wrapper
+          # -Werror is real, so turn off the unknown-flag diagnostic itself:
+          # -Werror promotes warnings that are enabled and does not re-enable
+          # disabled ones, so this survives the -Werror that dolfinx appends
+          # afterwards (a -Wno-error= would not).
+          CXXFLAGS: ${{ contains(matrix.main_spec, 'clang@18') && '-Wno-unknown-warning-option' || '' }}
         run: |
           spack env activate ./env
           spack load --first catch2 cmake fenics-dolfinx py-fenics-ffcx
@@ -128,7 +138,7 @@ jobs:
 
   fenics-ufcx:
     needs: style-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ubuntu:24.04
     permissions:
       contents: read
@@ -149,7 +159,7 @@ jobs:
 
   py-fenics-basix:
     needs: style-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ubuntu:24.04
     permissions:
       contents: read
@@ -190,7 +200,7 @@ jobs:
 
   py-fenics-dolfinx:
     needs: style-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ubuntu:24.04
     permissions:
       contents: read
@@ -256,7 +266,7 @@ jobs:
 
   py-fenics-ffcx:
     needs: style-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ubuntu:24.04
     permissions:
       contents: read
@@ -287,7 +297,7 @@ jobs:
 
   py-fenics-ufl:
     needs: style-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ubuntu:24.04
     permissions:
       contents: read
