@@ -36,43 +36,24 @@ runs:
     - name: Add cache
       shell: spack-bash {0}
       run: |
-         # NOTE: the shared 'spack-buildcache' package is deliberately not a
-         # mirror here. Its contents are unpadded, and with a padded install
-         # tree (below) spack cannot relocate them - anything embedding its
-         # prefix in a binary fails with CannotGrowString. Spack's own
-         # github-actions-buildcache, added by setup-spack, *is* padded and
-         # stays usable.
-         # Own package (auto-created on first push): the shared
-         # 'spack-buildcache' package above was created by dolfinx's CI,
-         # and GHCR ties push access to a package's originating repo, so
-         # this repo's GITHUB_TOKEN gets a 403 trying to push there.
+         # Own package, not the shared 'spack-buildcache': GHCR ties push
+         # access to a package's originating repo, and that one belongs to
+         # dolfinx's CI, so pushing there 403s. It is also unpadded, so with
+         # the padded tree below its binaries cannot be relocated either.
          spack mirror add --unsigned --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN \
            push-buildcache oci://ghcr.io/fenics/spack-fenics-buildcache
          spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
-         # Pad the install tree so pushed binaries stay relocatable: spack can
-         # only shrink a prefix when relocating (relocate_text.py raises
-         # CannotGrowString otherwise), so binaries built at a short prefix are
-         # unusable to anyone whose prefix is longer. Padding makes the build
-         # prefix longer than any consumer's, which is what lets this cache be
-         # filled from somewhere other than a runner. Note this also means the
-         # unpadded shared 'spack-buildcache' above can no longer be read.
+         # Pad the install tree so pushed binaries stay relocatable. Spack can
+         # only shrink a prefix when relocating (CannotGrowString otherwise),
+         # so a longer build prefix than any consumer's is what lets this
+         # cache be filled from somewhere other than a runner.
          spack config add "config:install_tree:padded_length:128"
-         # netlib reference BLAS/LAPACK, NOT openblas. Do not revert this
-         # without reading the rest of this comment.
-         #
-         # openblas@0.3.34 faults in its Zen kernels: high-degree hexahedral
-         # H(curl) work segfaults, taking out test_discrete_curl,
-         # test_NCE_interpolation, test_AA_hex and test_dof_permuting (8
-         # crashed pytest workers in run 31960367073). Those kernels only run
-         # on AMD, and GitHub's runners are AMD EPYC, so this is invisible on
-         # an Intel development machine: openblas passes every job locally and
-         # segfaults in CI. dolfinx's own CI pins netlib for the same fault.
-         #
-         # Both virtuals are set together: netlib-lapack provides each, and
-         # pinning only blas would let openblas back in as the lapack
-         # provider. These are requirements rather than
-         # 'packages:all:providers' preferences because a preference is only a
-         # tie-breaker and would be silently overridden.
+         # netlib, NOT openblas: openblas@0.3.34's Zen kernels segfault on
+         # high-degree hexahedral H(curl) work. They only run on AMD, so this
+         # is invisible on an Intel dev machine and only bites on the AMD
+         # runners. dolfinx's CI pins netlib for the same fault. Set both
+         # virtuals, or openblas returns as the lapack provider; 'require'
+         # rather than a providers preference, which is only a tie-breaker.
          spack config add "packages:blas:require:netlib-lapack"
          spack config add "packages:lapack:require:netlib-lapack"
 
@@ -92,17 +73,11 @@ runs:
       shell: spack-bash {0}
       run: |
         spack -e ./env config add concretizer:unify:true
-        # Do not let the buildcache steer the solve. With reuse on (spack's
-        # default) the concretizer prefers specs it finds in the mirrors, so
-        # the resulting hashes depend on what the cache happens to hold at
-        # that moment. With 66 jobs pushing to one mirror, that moves under
-        # us: a cache warmed for one solve is asked for different hashes by
-        # the next, and jobs rebuild large parts of the graph from source.
-        # Turning reuse off makes the solve a function of the recipes and
-        # this config alone, so warmed hashes are the ones CI asks for.
-        # Binaries are still installed from the cache whenever a hash
-        # matches. DOLFINx's own CI environment sets this for the same
-        # reason.
+        # Keep the buildcache out of the solve. With reuse on (the default)
+        # the concretizer prefers specs found in the mirrors, making hashes
+        # depend on what the cache holds at that moment - and with 66 jobs
+        # pushing to it, a cache warmed for one solve is asked for different
+        # hashes by the next. Binaries are still installed on a hash match.
         spack -e ./env config add concretizer:reuse:false
         spack -e ./env concretize --deprecated -j 4
 

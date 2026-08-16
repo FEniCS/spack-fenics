@@ -93,36 +93,25 @@ jobs:
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }} py-fenics-ffcx catch2 cmake
       # FFCx compilation of poisson.py fails in ffcx/codegeneration/C/finite_element.py
       #
-      # NOTE: 'spack build-env' is deliberately not used to set up this step.
-      # It reconstructs the *build* environment, which needs the package's
-      # build-only dependencies (sed, perl, m4, autoconf, compiler-wrapper,
-      # ...) to be installed. Those are not installed when the spec is served
-      # whole from the buildcache, and the step then dies with "Not all
-      # dependencies of fenics-dolfinx are installed". Compiling the tests
-      # only needs the *runtime* environment of the installed library, which
-      # is what 'spack load' provides; this is how DOLFINx's own ci.yml
-      # builds cpp/test.
+      # No 'spack build-env' here: it rebuilds the *build* environment, which
+      # needs build-only deps (sed, perl, m4, ...) installed, and they are not
+      # when the spec comes whole from the buildcache. Compiling the tests
+      # only needs the runtime environment 'spack load' gives, which is how
+      # dolfinx's own ci.yml builds cpp/test.
       - name: Run tests (skip 0.8)
         shell: spack-bash {0}
         if: ${{ matrix.version != '0.8' }}
         env:
-          # The compilers are externals found by 'spack compiler find', so
-          # they are not loadable specs and 'spack load' cannot put them in
-          # the environment. Name them explicitly, matching the compiler in
-          # the matrix spec, so the tests are built with the same compiler as
-          # the library they link against.
+          # The compilers are externals, so not loadable specs; name them so
+          # the tests use the same compiler as the library they link against.
           CC: ${{ contains(matrix.main_spec, 'clang@18') && 'clang-18' || 'gcc' }}
           CXX: ${{ contains(matrix.main_spec, 'clang@18') && 'clang++-18' || 'g++' }}
-          # dolfinx's cpp/test adds -Wno-c2y-extensions for any compiler
-          # identifying as Clang, with no version guard, but the flag only
-          # exists from Clang 19; clang-18 rejects it as an unknown warning
-          # option. It used to be harmless because 'spack build-env' put
-          # spack's compiler wrapper in CXX and the wrapper drops -Werror
-          # (config:flags:keep_werror), leaving a warning. Without the wrapper
-          # -Werror is real, so turn off the unknown-flag diagnostic itself:
-          # -Werror promotes warnings that are enabled and does not re-enable
-          # disabled ones, so this survives the -Werror that dolfinx appends
-          # afterwards (a -Wno-error= would not).
+          # dolfinx's cpp/test adds -Wno-c2y-extensions for any Clang, but it
+          # only exists from Clang 19. Harmless until build-env went, since
+          # spack's wrapper drops -Werror; now fatal. -Wno-unknown-warning-
+          # option survives dolfinx's later -Werror, which promotes enabled
+          # warnings but does not re-enable disabled ones (-Wno-error= would
+          # not survive it).
           CXXFLAGS: ${{ contains(matrix.main_spec, 'clang@18') && '-Wno-unknown-warning-option' || '' }}
         run: |
           spack env activate ./env
@@ -237,13 +226,10 @@ jobs:
         if: ${{ matrix.version == '0.9'}}
         shell: spack-bash {0}
         env:
-          # KNOWN BAD: all 27 parametrisations of test_refine_interval fail on
-          # 0.9 built with clang-18. The same 0.9 source with gcc@13 passes
-          # them, 0.10 and later pass on both compilers, and it reproduces
-          # under either BLAS provider and with a fortran-capable mpich - so
-          # it is a dolfinx 0.9-on-clang problem, not CI configuration. 0.9 is
-          # an old release and will not be fixed, so the test is pinned off
-          # for that one combination rather than left permanently red.
+          # KNOWN BAD: test_refine_interval fails (all 27 parametrisations) on
+          # 0.9 with clang-18 only - gcc@13 passes it on the same source, and
+          # 0.10+ pass on both. A dolfinx 0.9-on-clang bug that will not be
+          # fixed in an old release, so pin it off for that combination.
           SKIP_REFINE: ${{ contains(matrix.spec, 'clang@18') && 'and not test_refine_interval' || '' }}
         run: |
           spack env activate ./env
@@ -267,15 +253,12 @@ jobs:
         if: ${{ matrix.version != '0.8' && contains(matrix.spec, '+petsc4py') && contains(matrix.spec, '+adios2') }}
         shell: spack-bash {0}
         env:
-          # TestPETScAssemblers::test_matrix_assembly_rectangular compares a
-          # nest submatrix against a separately assembled one with
-          # A_sub.equal(A0), which is PETSc's *exact* comparison. That makes
-          # it sensitive to the BLAS provider (basix tabulates element tables
-          # through dgemm): it passed 6/6 on openblas and fails on netlib on
-          # 0.9/0.10/0.11. netlib is not optional here - openblas@0.3.34
-          # segfaults on the AMD runners, see the note in the test-package
-          # action - so the test is deselected for the tagged versions. It
-          # passes on main, so coverage is kept there.
+          # KNOWN BAD: test_matrix_assembly_rectangular compares matrices with
+          # PETSc's *exact* A_sub.equal(A0), so it is sensitive to the BLAS
+          # provider (basix tabulates through dgemm): it passes on openblas
+          # and fails on netlib for 0.9/0.10/0.11. netlib is not optional
+          # (see the test-package action), so pin it off for those. main
+          # passes and still runs it.
           SKIP_EXACT: ${{ matrix.version != 'main' && 'and not test_matrix_assembly_rectangular' || '' }}
         run: |
           spack env activate ./env
