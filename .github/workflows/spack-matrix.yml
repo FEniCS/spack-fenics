@@ -257,12 +257,23 @@ jobs:
       - name: Run petsc4py and adios2 tests
         if: ${{ matrix.version != '0.8' && contains(matrix.spec, '+petsc4py') && contains(matrix.spec, '+adios2') }}
         shell: spack-bash {0}
+        env:
+          # TestPETScAssemblers::test_matrix_assembly_rectangular compares a
+          # nest submatrix against a separately assembled one with
+          # A_sub.equal(A0), which is PETSc's *exact* comparison. That makes
+          # it sensitive to the BLAS provider (basix tabulates element tables
+          # through dgemm): it passed 6/6 on openblas and fails on netlib on
+          # 0.9/0.10/0.11. netlib is not optional here - openblas@0.3.34
+          # segfaults on the AMD runners, see the note in the test-package
+          # action - so the test is deselected for the tagged versions. It
+          # passes on main, so coverage is kept there.
+          SKIP_EXACT: ${{ matrix.version != 'main' && 'and not test_matrix_assembly_rectangular' || '' }}
         run: |
           spack env activate ./env
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
-          python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
-          mpiexec -n 3 python -m pytest -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
+          python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
+          mpiexec -n 3 python -m pytest -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
 
   py-fenics-ffcx:
     needs: style-check
