@@ -6,13 +6,10 @@ on:
       - main
   pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: "0 2 * * MON" # weekly, Mondays 0200
 
 # Cancel superseded runs: a new commit on a pull request makes the
-# previous run's result irrelevant. Pushes to 'main' and scheduled runs
-# are left to finish. The group is per-workflow, so the packages do not
-# cancel each other.
+# previous run's result irrelevant. Pushes to 'main' are left to finish.
+# The group is per-workflow, so the packages do not cancel each other.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
