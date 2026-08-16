@@ -57,13 +57,24 @@ runs:
          # filled from somewhere other than a runner. Note this also means the
          # unpadded shared 'spack-buildcache' above can no longer be read.
          spack config add "config:install_tree:padded_length:128"
-         # OpenBLAS for BLAS/LAPACK. This is spack's default provider, but
-         # both virtuals are stated explicitly so the choice does not depend
-         # on that default, and so a future change here has to set the two
-         # together: pinning only blas would leave the other virtual free to
-         # pick a different provider.
-         spack config add "packages:blas:require:openblas"
-         spack config add "packages:lapack:require:openblas"
+         # netlib reference BLAS/LAPACK, NOT openblas. Do not revert this
+         # without reading the rest of this comment.
+         #
+         # openblas@0.3.34 faults in its Zen kernels: high-degree hexahedral
+         # H(curl) work segfaults, taking out test_discrete_curl,
+         # test_NCE_interpolation, test_AA_hex and test_dof_permuting (8
+         # crashed pytest workers in run 31960367073). Those kernels only run
+         # on AMD, and GitHub's runners are AMD EPYC, so this is invisible on
+         # an Intel development machine: openblas passes every job locally and
+         # segfaults in CI. dolfinx's own CI pins netlib for the same fault.
+         #
+         # Both virtuals are set together: netlib-lapack provides each, and
+         # pinning only blas would let openblas back in as the lapack
+         # provider. These are requirements rather than
+         # 'packages:all:providers' preferences because a preference is only a
+         # tie-breaker and would be silently overridden.
+         spack config add "packages:blas:require:netlib-lapack"
+         spack config add "packages:lapack:require:netlib-lapack"
 
     - name: Compiler find
       shell: spack-bash {0}
