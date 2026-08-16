@@ -35,7 +35,12 @@ runs:
     - name: Add cache
       shell: spack-bash {0}
       run: |
-         spack mirror add --unsigned local-buildcache oci://ghcr.io/fenics/spack-buildcache
+         # NOTE: the shared 'spack-buildcache' package is deliberately not a
+         # mirror here. Its contents are unpadded, and with a padded install
+         # tree (below) spack cannot relocate them - anything embedding its
+         # prefix in a binary fails with CannotGrowString. Spack's own
+         # github-actions-buildcache, added by setup-spack, *is* padded and
+         # stays usable.
          # Own package (auto-created on first push): the shared
          # 'spack-buildcache' package above was created by dolfinx's CI,
          # and GHCR ties push access to a package's originating repo, so
@@ -43,6 +48,14 @@ runs:
          spack mirror add --unsigned --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN \
            push-buildcache oci://ghcr.io/fenics/spack-fenics-buildcache
          spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
+         # Pad the install tree so pushed binaries stay relocatable: spack can
+         # only shrink a prefix when relocating (relocate_text.py raises
+         # CannotGrowString otherwise), so binaries built at a short prefix are
+         # unusable to anyone whose prefix is longer. Padding makes the build
+         # prefix longer than any consumer's, which is what lets this cache be
+         # filled from somewhere other than a runner. Note this also means the
+         # unpadded shared 'spack-buildcache' above can no longer be read.
+         spack config add "config:install_tree:padded_length:128"
 
     - name: Compiler find
       shell: spack-bash {0}
