@@ -22,6 +22,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
+    # Warm-cache jobs peak around an hour; this is headroom for a cold
+    # cache while still catching a hang well before the 6h default.
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write

@@ -22,6 +22,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
+    # Warm-cache jobs peak around an hour; this is headroom for a cold
+    # cache while still catching a hang well before the 6h default.
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write
@@ -45,6 +48,9 @@ jobs:
     needs: style-check
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
+    # Warm-cache jobs peak around an hour; this is headroom for a cold
+    # cache while still catching a hang well before the 6h default.
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write
@@ -64,7 +70,7 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-      - name: Run tests
+      - name: Run tests (not 0.8)
         if: ${{ matrix.version != '0.8' }}
         shell: spack-bash {0}
         run: |
@@ -74,7 +80,7 @@ jobs:
           spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
           python -m pytest -n auto test/
       # NOTE: 0.8 has test_all_elements_included broken
-      - name: Run tests
+      - name: Run tests (0.8)
         if: ${{ matrix.version == '0.8' }}
         shell: spack-bash {0}
         run: |

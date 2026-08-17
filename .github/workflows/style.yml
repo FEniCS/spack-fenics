@@ -5,26 +5,46 @@ name: ✨
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   style-check:
     name: Spack style check ✨
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 2
-      - name: Fetch Spack CI scripts
-        uses: actions/checkout@v7
-        with:
-          repository: spack/spack
-          ref: v1.2.2
-          path: spack-core
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/.github/workflows/requirements/style/requirements.txt
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/pyproject.toml
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/.ci/style_check.sh
+          # Full history: the diff base below is the ref's previous tip, which
+          # is an arbitrary distance back.
+          fetch-depth: 0
+      - name: Fetch Spack style config and check script
+        run: |
+          # -O on every download. wget does not overwrite an existing file, it
+          # writes 'name.1' alongside it, and the repo root already holds a
+          # pyproject.toml - so without -O, ruff below silently picks up this
+          # repo's copy instead of the config being fetched here.
+          url=https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4
+          wget -O requirements.txt $url/.github/workflows/requirements/style/requirements.txt
+          wget -O pyproject.toml $url/pyproject.toml
+          wget -O style_check.sh $url/.ci/style_check.sh
       - run: pip install -r requirements.txt
-      - run: chmod +x style_check.sh
-      - run: ./style_check.sh HEAD^
+      - name: Run style check
+        env:
+          # A push can carry several commits, and HEAD^ would check only the
+          # tip; github.event.before is the ref's previous tip, so the whole
+          # push is covered. It is unset on pull_request - where HEAD is the
+          # merge commit, making HEAD^ the base and already correct - and
+          # points at nothing after a force push or a branch's first push.
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            base=$BEFORE
+          else
+            base=HEAD^
+          fi
+          sh style_check.sh "$base"
