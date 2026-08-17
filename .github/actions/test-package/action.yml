@@ -58,8 +58,8 @@ runs:
       uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
         spack_ref: v1.2.2
-        # spack/spack-packages @ 2026-08-15
-        packages_ref: f5642ce3dafc940e61f20a277e829f5edf5bd2d4
+        # spack/spack-packages @ 2026-08-17
+        packages_ref: 1ccf95574922e2a7f7ef0351bd67758ad4634b7a
 
     # Written to the job environment rather than to this action's steps
     # alone: the names below are what 'spack mirror add' records in
