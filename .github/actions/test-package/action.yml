@@ -1,10 +1,9 @@
-name: test-spack
+name: test-package
 description: 'Builds a spack package from given spack-spec'
 inputs:
   spec:
     description: 'Spack spec syntax'
     required: true
-    type: string
   env-path:
     description: >-
       Directory for the Spack environment the build runs in. It is left in
@@ -29,21 +28,38 @@ runs:
   steps:
     - name: Install Spack requirements
       shell: sh
+      env:
+        SPEC: ${{ inputs.spec }}
+        DEBIAN_FRONTEND: noninteractive
       run: |
-        apt-get -y update
-        apt-get install -y file bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release patch python3 tar unzip xz-utils zstd
+        # clang shares the transaction rather than getting a step of its own.
+        # libclang-rt-18-dev is only a *recommend* of clang-18, so it has to
+        # be named once recommends are off: without it, any -fsanitize= link
+        # fails hunting for libclang_rt.asan-x86_64.a.
+        case "$SPEC" in
+          *clang@18*) clang="clang-18 libclang-rt-18-dev" ;;
+          *) clang="" ;;
+        esac
+        # Root inside the container, but not on a bare runner.
+        sudo=$(command -v sudo || true)
+        $sudo apt-get -y update
+        # --no-install-recommends drops 65 of 174 packages here - llvm-18-dev,
+        # manpages, the X libraries libgd drags in - and none of them are
+        # build inputs: spack builds its own make, curl, libffi and so on.
+        $sudo apt-get install -y --no-install-recommends \
+          file bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release \
+          patch python3 tar unzip xz-utils zstd $clang
+        $sudo rm -rf /var/lib/apt/lists/*
 
     - name: Set up spack
-      uses: spack/setup-spack@v3
+      # Pinned to the commit v3 points at: spack_ref and packages_ref below
+      # are pinned, so leaving the action that consumes them on a mutable tag
+      # would be the one unpinned input to the build.
+      uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
         spack_ref: v1.2.2
         # spack/spack-packages @ 2026-08-15
         packages_ref: f5642ce3dafc940e61f20a277e829f5edf5bd2d4
-
-    - name: Install clang-18
-      shell: sh
-      if: contains(inputs.spec, 'clang@18')
-      run: apt-get install -y clang-18
 
     # Written to the job environment rather than to this action's steps
     # alone: the names below are what 'spack mirror add' records in
@@ -129,14 +145,14 @@ runs:
         # pushing to it, a cache warmed for one solve is asked for different
         # hashes by the next. Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
-        spack -e "$ENV_DIR" concretize --deprecated -j 4
+        spack -e "$ENV_DIR" concretize --deprecated -j $(nproc)
 
     - name: Install
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
       run: >
-        spack -e "$ENV_DIR" install --deprecated -j 4
+        spack -e "$ENV_DIR" install --deprecated -j $(nproc)
         --log-format junit
         --log-file log.xml
 
@@ -162,7 +178,7 @@ runs:
     # two matrix entries tend to sit.
     - name: Name log artifact
       id: log
-      if: success() || failure()
+      if: ${{ !cancelled() }}
       shell: bash
       env:
         SPEC: ${{ inputs.spec }}
@@ -171,8 +187,9 @@ runs:
         echo "name=$slug" >> "$GITHUB_OUTPUT"
 
     - name: Upload log
-      if: success() || failure()
+      if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.log.outputs.name }}-log
         path: log.xml
+        retention-days: 7
