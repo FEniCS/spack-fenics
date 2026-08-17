@@ -1,0 +1,53 @@
+name: UFL
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs: a new commit on a pull request makes the
+# previous run's result irrelevant. Pushes to 'main' are left to finish.
+# The group is per-workflow, so the packages do not cancel each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  style-check:
+    uses: ./.github/workflows/style.yml
+
+  py-fenics-ufl:
+    needs: style-check
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    # Warm-cache jobs peak around an hour; this is headroom for a cold
+    # cache while still catching a hang well before the 6h default.
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "2025.2", "2025.1", "2024.2", "2024.1"]
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: spack-fenics
+      - id: spack
+        uses: ./spack-fenics/.github/actions/test-package
+        with:
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
+          spec: py-fenics-ufl@${{ matrix.version }}
+      # NOTE: Reference counting changed in Python 3.14, leading to test failure.
+      - name: Run tests
+        shell: spack-bash {0}
+        run: |
+          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack install --add py-pytest py-pytest-xdist
+          spack stage py-fenics-ufl@${{ matrix.version }}
+          spack cd py-fenics-ufl@${{ matrix.version }}
+          python -m pytest -n auto -k "not test_strip_form_arguments_strips_data_refs" test/

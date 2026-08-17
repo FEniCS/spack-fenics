@@ -1,0 +1,82 @@
+name: FFCx
+
+# fenics-ufcx is the C interface from the FFCx repo, so it lives here with
+# py-fenics-ffcx rather than in a workflow of its own.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs: a new commit on a pull request makes the
+# previous run's result irrelevant. Pushes to 'main' are left to finish.
+# The group is per-workflow, so the packages do not cancel each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  style-check:
+    uses: ./.github/workflows/style.yml
+
+  fenics-ufcx:
+    needs: style-check
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    # Warm-cache jobs peak around an hour; this is headroom for a cold
+    # cache while still catching a hang well before the 6h default.
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: spack-fenics
+      - id: spack
+        uses: ./spack-fenics/.github/actions/test-package
+        with:
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
+          spec: fenics-ufcx@${{ matrix.version }} %gcc@13
+
+  py-fenics-ffcx:
+    needs: style-check
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    # Warm-cache jobs peak around an hour; this is headroom for a cold
+    # cache while still catching a hang well before the 6h default.
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["main", "0.11", "0.10", "0.9", "0.8"]
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: spack-fenics
+      # NOTE: Python built with GCC, otherwise cffi can try for an odd compiler.
+      - id: spack
+        uses: ./spack-fenics/.github/actions/test-package
+        with:
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
+          spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@13 py-numba
+      # NOTE: ffcx version 0.8 currently broken
+      - name: Run tests
+        if: ${{ matrix.version != '0.8' }}
+        shell: spack-bash {0}
+        run: |
+          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack install --add py-pytest py-sympy py-pytest-xdist
+          spack stage py-fenics-ffcx@${{ matrix.version }}
+          spack cd py-fenics-ffcx@${{ matrix.version }}
+          python -m pytest -n auto test/

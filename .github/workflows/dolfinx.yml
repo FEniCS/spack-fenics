@@ -1,4 +1,4 @@
-name: 🤖
+name: DOLFINx
 
 on:
   push:
@@ -6,69 +6,25 @@ on:
       - main
   pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: "0 2 * * MON" # weekly, Mondays 0200
 
 # Cancel superseded runs: a new commit on a pull request makes the
-# previous run's result irrelevant. Pushes to 'main' and scheduled runs
-# are left to finish.
+# previous run's result irrelevant. Pushes to 'main' are left to finish.
+# The group is per-workflow, so the packages do not cancel each other.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-env:
-  GITHUB_USER: ${{ github.actor }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
   style-check:
-    name: ✨
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.13'
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 2
-      - name: Fetch Spack CI scripts
-        uses: actions/checkout@v7
-        with:
-          repository: spack/spack
-          ref: v1.2.2
-          path: spack-core
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/.github/workflows/requirements/style/requirements.txt
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/pyproject.toml
-      - run: wget https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4/.ci/style_check.sh
-      - run: pip install -r requirements.txt
-      - run: chmod +x style_check.sh
-      - run: ./style_check.sh HEAD^
-
-  fenics-basix:
-    needs: style-check
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %gcc@13", "build_type=Developer %clang@18"]
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+    uses: ./.github/workflows/style.yml
 
   fenics-dolfinx:
     needs: style-check
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
+    # Warm-cache jobs peak around an hour; this is headroom for a cold
+    # cache while still catching a hang well before the 6h default.
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write
@@ -77,7 +33,7 @@ jobs:
       matrix:
         # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        main_spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
+        spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -88,9 +44,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
+      - id: spack
+        uses: ./spack-fenics/.github/actions/test-package
         with:
-          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }} py-fenics-ffcx catch2 cmake
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
+          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} py-fenics-ffcx catch2 cmake
       # FFCx compilation of poisson.py fails in ffcx/codegeneration/C/finite_element.py
       #
       # No 'spack build-env' here: it rebuilds the *build* environment, which
@@ -104,93 +62,33 @@ jobs:
         env:
           # The compilers are externals, so not loadable specs; name them so
           # the tests use the same compiler as the library they link against.
-          CC: ${{ contains(matrix.main_spec, 'clang@18') && 'clang-18' || 'gcc' }}
-          CXX: ${{ contains(matrix.main_spec, 'clang@18') && 'clang++-18' || 'g++' }}
+          CC: ${{ contains(matrix.spec, 'clang@18') && 'clang-18' || 'gcc' }}
+          CXX: ${{ contains(matrix.spec, 'clang@18') && 'clang++-18' || 'g++' }}
           # dolfinx's cpp/test adds -Wno-c2y-extensions for any Clang, but it
           # only exists from Clang 19. Harmless until build-env went, since
           # spack's wrapper drops -Werror; now fatal. -Wno-unknown-warning-
           # option survives dolfinx's later -Werror, which promotes enabled
           # warnings but does not re-enable disabled ones (-Wno-error= would
           # not survive it).
-          CXXFLAGS: ${{ contains(matrix.main_spec, 'clang@18') && '-Wno-unknown-warning-option' || '' }}
+          CXXFLAGS: ${{ contains(matrix.spec, 'clang@18') && '-Wno-unknown-warning-option' || '' }}
         run: |
-          spack env activate ./env
+          spack env activate ${{ steps.spack.outputs.env-path }}
           spack load --first catch2 cmake fenics-dolfinx py-fenics-ffcx
-          spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
-          spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
+          spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
+          spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
           cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
           cmake --build build/test
           cd build/test
           ctest -V --output-on-failure -R unittests_np_1
           ctest -V --output-on-failure -R unittests_np_3
 
-
-  fenics-ufcx:
-    needs: style-check
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        spec: ["%gcc@13"]
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: fenics-ufcx@${{ matrix.version }} ${{ matrix.spec }}
-
-  py-fenics-basix:
-    needs: style-check
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        # Make sure fenics-basix and py-fenics-basix build with same compiler/ABI.
-        spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %clang@18 ^fenics-basix%clang@18"]
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-      - name: Run tests
-        if: ${{ matrix.version != '0.8' }}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          python -m pytest -n auto test/
-      # NOTE: 0.8 has test_all_elements_included broken
-      - name: Run tests
-        if: ${{ matrix.version == '0.8' }}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --deprecated --add py-pytest py-sympy py-pytest-xdist
-          spack stage --deprecated py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          python -m pytest -n auto -k "not test_all_elements_included" test/
-
   py-fenics-dolfinx:
     needs: style-check
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
+    # Warm-cache jobs peak around an hour; this is headroom for a cold
+    # cache while still catching a hang well before the 6h default.
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write
@@ -218,8 +116,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
+      - id: spack
+        uses: ./spack-fenics/.github/actions/test-package
         with:
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0
       - name: Run tests (0.9)
@@ -232,7 +132,7 @@ jobs:
           # fixed in an old release, so pin it off for that combination.
           SKIP_REFINE: ${{ contains(matrix.spec, 'clang@18') && 'and not test_refine_interval' || '' }}
         run: |
-          spack env activate ./env
+          spack env activate ${{ steps.spack.outputs.env-path }}
           spack install --deprecated --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
@@ -243,7 +143,7 @@ jobs:
         if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
         shell: spack-bash {0}
         run: |
-          spack env activate ./env
+          spack env activate ${{ steps.spack.outputs.env-path }}
           spack install --add py-pytest py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
@@ -261,68 +161,8 @@ jobs:
           # passes and still runs it.
           SKIP_EXACT: ${{ matrix.version != 'main' && 'and not test_matrix_assembly_rectangular' || '' }}
         run: |
-          spack env activate ./env
+          spack env activate ${{ steps.spack.outputs.env-path }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
           mpiexec -n 3 python -m pytest -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
-
-  py-fenics-ffcx:
-    needs: style-check
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "0.11", "0.10", "0.9", "0.8"]
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: spack-fenics
-      # NOTE: Python built with GCC, otherwise cffi can try for an odd compiler.
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@13 py-numba
-      # NOTE: ffcx version 0.8 currently broken
-      - name: Run tests
-        if: ${{ matrix.version != '0.8' }}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-ffcx@${{ matrix.version }}
-          spack cd py-fenics-ffcx@${{ matrix.version }}
-          python -m pytest -n auto test/
-
-  py-fenics-ufl:
-    needs: style-check
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["main", "2025.2", "2025.1", "2024.2", "2024.1"]
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
-        with:
-          spec: py-fenics-ufl@${{ matrix.version }}
-      # NOTE: Reference counting changed in Python 3.14, leading to test failure.
-      - name: Run tests
-        shell: spack-bash {0}
-        run: |
-          spack env activate ./env
-          spack install --add py-pytest py-pytest-xdist
-          spack stage py-fenics-ufl@${{ matrix.version }}
-          spack cd py-fenics-ufl@${{ matrix.version }}
-          python -m pytest -n auto -k "not test_strip_form_arguments_strips_data_refs" test/
