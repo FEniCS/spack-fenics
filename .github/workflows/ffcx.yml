@@ -1,4 +1,4 @@
-name: ffcx
+name: FFCx
 
 # fenics-ufcx is the C interface from the FFCx repo, so it lives here with
 # py-fenics-ffcx rather than in a workflow of its own.

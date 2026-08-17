@@ -1,4 +1,4 @@
-name: dolfinx
+name: DOLFINx
 
 on:
   push:
