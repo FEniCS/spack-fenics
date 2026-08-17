@@ -14,10 +14,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-env:
-  GITHUB_USER: ${{ github.actor }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
   style-check:
     uses: ./.github/workflows/style.yml
@@ -45,8 +41,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
+      - id: spack
+        uses: ./spack-fenics/.github/actions/test-package
         with:
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }} py-fenics-ffcx catch2 cmake
       # FFCx compilation of poisson.py fails in ffcx/codegeneration/C/finite_element.py
       #
@@ -71,7 +69,7 @@ jobs:
           # not survive it).
           CXXFLAGS: ${{ contains(matrix.main_spec, 'clang@18') && '-Wno-unknown-warning-option' || '' }}
         run: |
-          spack env activate ./env
+          spack env activate ${{ steps.spack.outputs.env-path }}
           spack load --first catch2 cmake fenics-dolfinx py-fenics-ffcx
           spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
           spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.main_spec }}
@@ -112,8 +110,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
+      - id: spack
+        uses: ./spack-fenics/.github/actions/test-package
         with:
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0
       - name: Run tests (0.9)
@@ -126,7 +126,7 @@ jobs:
           # fixed in an old release, so pin it off for that combination.
           SKIP_REFINE: ${{ contains(matrix.spec, 'clang@18') && 'and not test_refine_interval' || '' }}
         run: |
-          spack env activate ./env
+          spack env activate ${{ steps.spack.outputs.env-path }}
           spack install --deprecated --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
@@ -137,7 +137,7 @@ jobs:
         if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
         shell: spack-bash {0}
         run: |
-          spack env activate ./env
+          spack env activate ${{ steps.spack.outputs.env-path }}
           spack install --add py-pytest py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
@@ -155,7 +155,7 @@ jobs:
           # passes and still runs it.
           SKIP_EXACT: ${{ matrix.version != 'main' && 'and not test_matrix_assembly_rectangular' || '' }}
         run: |
-          spack env activate ./env
+          spack env activate ${{ steps.spack.outputs.env-path }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
