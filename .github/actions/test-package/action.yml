@@ -95,7 +95,7 @@ runs:
          # dolfinx's CI, so pushing there 403s. It is also unpadded, so with
          # the padded tree below its binaries cannot be relocated either.
          spack mirror add --unsigned --oci-username-variable GHCR_USER --oci-password-variable GHCR_TOKEN \
-           push-buildcache oci://ghcr.io/fenics/spack-fenics-buildcache
+           push-buildcache oci://ghcr.io/fenics/spack-buildcache
          spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
          # Pad the install tree so pushed binaries stay relocatable. Spack can
          # only shrink a prefix when relocating (CannotGrowString otherwise),
