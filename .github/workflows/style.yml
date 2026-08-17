@@ -1,9 +1,17 @@
 name: ✨
 
-# Reusable: each per-package workflow calls this and gates its build matrix
-# on it, since 'needs:' cannot reach across workflow files.
 on:
-  workflow_call:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs, as the package workflows do: a new commit on a
+# pull request makes the previous run's result irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
