@@ -15,11 +15,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  style-check:
-    uses: ./.github/workflows/style.yml
-
   fenics-basix:
-    needs: style-check
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
     # Warm-cache jobs peak around an hour; this is headroom for a cold
@@ -45,7 +41,6 @@ jobs:
           spec: fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
 
   py-fenics-basix:
-    needs: style-check
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
     # Warm-cache jobs peak around an hour; this is headroom for a cold
