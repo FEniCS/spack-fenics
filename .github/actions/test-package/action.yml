@@ -90,10 +90,10 @@ runs:
     - name: Add cache
       shell: spack-bash {0}
       run: |
-         # Own package, not the shared 'spack-buildcache': GHCR ties push
-         # access to a package's originating repo, and that one belongs to
-         # dolfinx's CI, so pushing there 403s. It is also unpadded, so with
-         # the padded tree below its binaries cannot be relocated either.
+         # The shared 'spack-buildcache' package. GHCR ties push access to a
+         # package's originating repository, and this one originates from
+         # FEniCS/dolfinx, so this repo has to be on its Actions access list
+         # with the Write role - otherwise every push here 403s.
          spack mirror add --unsigned --oci-username-variable GHCR_USER --oci-password-variable GHCR_TOKEN \
            push-buildcache oci://ghcr.io/fenics/spack-buildcache
          spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
@@ -168,9 +168,19 @@ runs:
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
+      # No --update-index. Updating it re-reads every manifest in the
+      # registry - roughly 3600 of them - and writes a snapshot of the
+      # result, so with 66 jobs pushing at once they both clobber each
+      # other and race the writes: a tag that the listing returns but
+      # whose manifest is not yet readable aborts the whole step, which
+      # is how this failed. Nothing here needs the index. For an OCI
+      # mirror 'spack install' derives the tag from the spec hash and
+      # fetches it directly (try_direct_fetch skips OCI entirely, and
+      # download_tarball falls back to every configured mirror), and the
+      # solve cannot consult it either, since reuse is off above.
       run: >
         spack -e "$ENV_DIR" buildcache push --base-image ubuntu:24.04
-        --allow-missing --update-index push-buildcache
+        --allow-missing push-buildcache
 
     # Artifact names have to be unique within a run, and a raw spec makes for
     # an unreadable one, so squash its punctuation into a slug. Not
