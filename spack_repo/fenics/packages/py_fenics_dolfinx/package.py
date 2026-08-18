@@ -96,7 +96,11 @@ class PyFenicsDolfinx(PythonPackage):
 
     depends_on("py-nanobind@2.9.2:", when="@0.11:", type="build")
     depends_on("py-nanobind@2.5:", when="@0.10:", type="build")
-    depends_on("py-nanobind@2:", when="@0.9:", type="build")
+    # 2.2, not 2: 2.0.0 and 2.1.0 both build cleanly and then fail every
+    # interpolation test with the same "incompatible function arguments"
+    # error (119 of 119 failures on 0.9). 2.2.0 is the oldest that passes
+    # - there is no 2.3.0 - and the versions above set their own floor.
+    depends_on("py-nanobind@2.2:", when="@0.9:", type="build")
     depends_on("py-nanobind@1.8:1.9", when="@0.8", type="build")
     # nanobind 2.14 tightened argument conversion, and 0.9-0.11's Python
     # layer passes types the C++ Form constructor no longer accepts:
