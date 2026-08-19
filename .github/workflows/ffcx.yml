@@ -40,7 +40,6 @@ jobs:
   py-fenics-ffcx:
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
-    # Cold-cache headroom; still catches a hang well before the 6h default.
     timeout-minutes: 240
     permissions:
       contents: read
