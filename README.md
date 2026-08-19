@@ -2,8 +2,8 @@
 
 This Spack package repository contains Spack packages only for the FEniCS
 Project components. Using `spack repo add` it can be overlaid onto any complete
-upstream package repository. Its FEniCS component package will then take
-precedence over the upstream package repository.
+upstream package repository. Its FEniCS component packages will then take
+precedence over those in the upstream package repository.
 
 ## Instructions
 
@@ -85,14 +85,14 @@ To build C++ applications using Spack's build environment (e.g. when it used
 special compilers to build fenics-dolfinx):
 
     spack load cmake fenics-dolfinx py-fenics-ffcx
-    spack build-spec --dump spack-build-env.sh fenics-dolfinx
+    spack build-env --dump spack-build-env.sh fenics-dolfinx
     source spack-build-env.sh
-    # Execute e.g. cmake, should use Spack's compiler-wrapper 
+    # Execute e.g. cmake, should use Spack's compiler-wrapper
 
 ## Developer notes
 
 Diffing against an upstream `builtin` package set:
 
-    export OTHER_PACKAGES_DIR=/path/to/spack-packages/repos/spack_repo/builtin/packages 
-    cd spack-fenics/spack_repo/fenics/package
-    for dir in */; do; git --no-pager diff --no-index $OTHER_PACKAGES_DIR/$dir $dir; done;
+    export OTHER_PACKAGES_DIR=/path/to/spack-packages/repos/spack_repo/builtin/packages
+    cd spack-fenics/spack_repo/fenics/packages
+    for dir in */; do git --no-pager diff --no-index "$OTHER_PACKAGES_DIR/$dir" "$dir"; done
