@@ -1,4 +1,4 @@
-name: ✨
+name: Style check✨
 
 on:
   push:
@@ -7,8 +7,7 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Cancel superseded runs, as the package workflows do: a new commit on a
-# pull request makes the previous run's result irrelevant.
+# Cancel superseded runs: a new commit makes the previous one irrelevant.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -27,15 +26,12 @@ jobs:
           python-version: '3.13'
       - uses: actions/checkout@v7
         with:
-          # Full history: the diff base below is the ref's previous tip, which
-          # is an arbitrary distance back.
+          # Full history: the diff base is the ref's previous tip.
           fetch-depth: 0
       - name: Fetch Spack style config and check script
         run: |
-          # -O on every download. wget does not overwrite an existing file, it
-          # writes 'name.1' alongside it, and the repo root already holds a
-          # pyproject.toml - so without -O, ruff below silently picks up this
-          # repo's copy instead of the config being fetched here.
+          # -O everywhere: wget writes 'name.1' rather than overwriting, and
+          # the repo root already has a pyproject.toml that ruff would read.
           url=https://raw.githubusercontent.com/spack/spack-packages/f5642ce3dafc940e61f20a277e829f5edf5bd2d4
           wget -O requirements.txt $url/.github/workflows/requirements/style/requirements.txt
           wget -O pyproject.toml $url/pyproject.toml
@@ -43,11 +39,9 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Run style check
         env:
-          # A push can carry several commits, and HEAD^ would check only the
-          # tip; github.event.before is the ref's previous tip, so the whole
-          # push is covered. It is unset on pull_request - where HEAD is the
-          # merge commit, making HEAD^ the base and already correct - and
-          # points at nothing after a force push or a branch's first push.
+          # Covers a whole multi-commit push, where HEAD^ would check only
+          # the tip. Unset on pull_request (HEAD^ is already the base there)
+          # and dangling after a force push or a branch's first push.
           BEFORE: ${{ github.event.before }}
         run: |
           if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then

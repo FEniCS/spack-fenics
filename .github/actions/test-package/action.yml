@@ -6,9 +6,8 @@ inputs:
     required: true
   env-path:
     description: >-
-      Directory for the Spack environment the build runs in. It is left in
-      place for the rest of the job, so later steps can activate it; read the
-      path back from the env-path output rather than repeating it.
+      Directory for the Spack environment. Left in place for the rest of the
+      job; read it back from the env-path output rather than repeating it.
     default: ./env
   registry-user:
     description: 'Username for the ghcr.io build cache.'
@@ -16,8 +15,7 @@ inputs:
   registry-token:
     description: >-
       Token for the ghcr.io build cache; pass secrets.GITHUB_TOKEN. Exported
-      to the job as GHCR_TOKEN, since spack reads the mirror again in every
-      later step that installs.
+      as GHCR_TOKEN, since later install steps re-read the mirror.
     required: true
 outputs:
   env-path:
@@ -32,10 +30,8 @@ runs:
         SPEC: ${{ inputs.spec }}
         DEBIAN_FRONTEND: noninteractive
       run: |
-        # clang shares the transaction rather than getting a step of its own.
-        # libclang-rt-18-dev is only a *recommend* of clang-18, so it has to
-        # be named once recommends are off: without it, any -fsanitize= link
-        # fails hunting for libclang_rt.asan-x86_64.a.
+        # libclang-rt-18-dev is only a *recommend* of clang-18, so with
+        # recommends off any -fsanitize= link fails without it.
         case "$SPEC" in
           *clang@18*) clang="clang-18 libclang-rt-18-dev" ;;
           *) clang="" ;;
@@ -43,30 +39,25 @@ runs:
         # Root inside the container, but not on a bare runner.
         sudo=$(command -v sudo || true)
         $sudo apt-get -y update
-        # --no-install-recommends drops 65 of 174 packages here - llvm-18-dev,
-        # manpages, the X libraries libgd drags in - and none of them are
-        # build inputs: spack builds its own make, curl, libffi and so on.
+        # Drops 65 of 174 packages, none of them build inputs: spack builds
+        # its own make, curl, libffi and so on.
         $sudo apt-get install -y --no-install-recommends \
           file bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release \
           patch python3 tar unzip xz-utils zstd $clang
         $sudo rm -rf /var/lib/apt/lists/*
 
     - name: Set up spack
-      # Pinned to the commit v3 points at: spack_ref and packages_ref below
-      # are pinned, so leaving the action that consumes them on a mutable tag
-      # would be the one unpinned input to the build.
+      # Pinned: spack_ref and packages_ref are, so a mutable tag here would
+      # be the build's one unpinned input.
       uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
         spack_ref: v1.2.2
         # spack/spack-packages @ 2026-08-17
         packages_ref: 1ccf95574922e2a7f7ef0351bd67758ad4634b7a
 
-    # Written to the job environment rather than to this action's steps
-    # alone: the names below are what 'spack mirror add' records in
-    # mirrors.yaml, and spack resolves them again every time the caller's
-    # own 'spack install' steps consult the mirror. Not named GITHUB_*,
-    # both to avoid shadowing the runner's own variables and because the
-    # runner refuses to set that prefix through $GITHUB_ENV.
+    # Job-wide, not step-local: mirrors.yaml stores these names, and spack
+    # re-resolves them in every later install step. Not GITHUB_*, which
+    # $GITHUB_ENV refuses.
     - name: Export build cache credentials
       shell: bash
       env:
@@ -80,8 +71,7 @@ runs:
     - name: Add repos
       shell: spack-bash {0}
       run: |
-        # Found through the action's own location, so the caller is free to
-        # check the repo out wherever it likes.
+        # From the action's own location, so callers can check out anywhere.
         repo_dir=$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)
         spack repo add --name fenics "$repo_dir/spack_repo/fenics"
         spack config get repos
@@ -90,24 +80,19 @@ runs:
     - name: Add cache
       shell: spack-bash {0}
       run: |
-         # The shared 'spack-buildcache' package. GHCR ties push access to a
-         # package's originating repository, and this one originates from
-         # FEniCS/dolfinx, so this repo has to be on its Actions access list
-         # with the Write role - otherwise every push here 403s.
+         # GHCR ties push access to a package's originating repo, which for
+         # this one is FEniCS/dolfinx: this repo must be on its Actions
+         # access list with the Write role, or every push 403s.
          spack mirror add --unsigned --oci-username-variable GHCR_USER --oci-password-variable GHCR_TOKEN \
            push-buildcache oci://ghcr.io/fenics/spack-buildcache
          spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
-         # Pad the install tree so pushed binaries stay relocatable. Spack can
-         # only shrink a prefix when relocating (CannotGrowString otherwise),
-         # so a longer build prefix than any consumer's is what lets this
-         # cache be filled from somewhere other than a runner.
+         # Pad so pushed binaries stay relocatable: spack can only shrink a
+         # prefix, so the build prefix must exceed any consumer's.
          spack config add "config:install_tree:padded_length:128"
          # netlib, NOT openblas: openblas@0.3.34's Zen kernels segfault on
-         # high-degree hexahedral H(curl) work. They only run on AMD, so this
-         # is invisible on an Intel dev machine and only bites on the AMD
-         # runners. dolfinx's CI pins netlib for the same fault. Set both
-         # virtuals, or openblas returns as the lapack provider; 'require'
-         # rather than a providers preference, which is only a tie-breaker.
+         # high-degree hexahedral H(curl), visible only on the AMD runners.
+         # Both virtuals, or openblas returns as the lapack provider;
+         # 'require', since a providers preference is only a tie-breaker.
          spack config add "packages:blas:require:netlib-lapack"
          spack config add "packages:lapack:require:netlib-lapack"
 
@@ -115,10 +100,8 @@ runs:
       shell: spack-bash {0}
       run: spack compiler find
 
-    # The spec and the environment path reach the shell as variables, not as
-    # expansions inside the script: GitHub substitutes an expansion before
-    # bash parses the line, so any shell metacharacter in a caller's spec
-    # would run as code.
+    # Spec and env path arrive as variables: GitHub substitutes ${{ }}
+    # before bash parses the line, so a metacharacter in a spec would run.
     - name: Create env
       shell: spack-bash {0}
       env:
@@ -139,11 +122,9 @@ runs:
         ENV_DIR: ${{ inputs.env-path }}
       run: |
         spack -e "$ENV_DIR" config add concretizer:unify:true
-        # Keep the buildcache out of the solve. With reuse on (the default)
-        # the concretizer prefers specs found in the mirrors, making hashes
-        # depend on what the cache holds at that moment - and with 66 jobs
-        # pushing to it, a cache warmed for one solve is asked for different
-        # hashes by the next. Binaries are still installed on a hash match.
+        # Keep the buildcache out of the solve: with reuse on, hashes depend
+        # on what the mirror happens to hold, and 66 jobs are pushing to it.
+        # Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
         spack -e "$ENV_DIR" concretize --deprecated -j $(nproc)
 
@@ -156,11 +137,9 @@ runs:
         --log-format junit
         --log-file log.xml
 
-    # Skipped for pull requests from forks: those run with a read-only
-    # GITHUB_TOKEN regardless of the 'permissions' block, so the push
-    # would 401 as soon as it had anything to upload, failing a
-    # contributor's job on a step that tests nothing. Reads are
-    # anonymous, so forked-repo builds still take from the cache.
+    # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
+    # so the push would 401 on a step that tests nothing. Reads are
+    # anonymous, so they still take from the cache.
     - name: Push packages to cache
       if: >-
         ${{ !cancelled() && (github.event_name != 'pull_request'
@@ -168,24 +147,16 @@ runs:
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-      # No --update-index. Updating it re-reads every manifest in the
-      # registry - roughly 3600 of them - and writes a snapshot of the
-      # result, so with 66 jobs pushing at once they both clobber each
-      # other and race the writes: a tag that the listing returns but
-      # whose manifest is not yet readable aborts the whole step, which
-      # is how this failed. Nothing here needs the index. For an OCI
-      # mirror 'spack install' derives the tag from the spec hash and
-      # fetches it directly (try_direct_fetch skips OCI entirely, and
-      # download_tarball falls back to every configured mirror), and the
-      # solve cannot consult it either, since reuse is off above.
+      # No --update-index: it re-reads all ~3600 manifests and writes a
+      # snapshot, so concurrent jobs clobber and race it - a tag listed
+      # before its manifest is readable aborts the step. Nothing reads it:
+      # OCI installs fetch by tag from the spec hash, and reuse is off.
       run: >
         spack -e "$ENV_DIR" buildcache push --base-image ubuntu:24.04
         --allow-missing push-buildcache
 
-    # Artifact names have to be unique within a run, and a raw spec makes for
-    # an unreadable one, so squash its punctuation into a slug. Not
-    # truncated: the tail of a spec is where the variants that distinguish
-    # two matrix entries tend to sit.
+    # Names must be unique within a run, so squash the spec's punctuation.
+    # Not truncated: the distinguishing variants sit at the tail.
     - name: Name log artifact
       id: log
       if: ${{ !cancelled() }}

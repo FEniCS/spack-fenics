@@ -96,19 +96,15 @@ class PyFenicsDolfinx(PythonPackage):
 
     depends_on("py-nanobind@2.9.2:", when="@0.11:", type="build")
     depends_on("py-nanobind@2.5:", when="@0.10:", type="build")
-    # 2.2, not 2: 2.0.0 and 2.1.0 both build cleanly and then fail every
-    # interpolation test with the same "incompatible function arguments"
-    # error (119 of 119 failures on 0.9). 2.2.0 is the oldest that passes
-    # - there is no 2.3.0 - and the versions above set their own floor.
+    # 2.2, not 2: 2.0.0 and 2.1.0 build, then fail all 119 interpolation
+    # tests with "incompatible function arguments". 2.2.0 is the oldest
+    # that passes (there is no 2.3.0).
     depends_on("py-nanobind@2.2:", when="@0.9:", type="build")
     depends_on("py-nanobind@1.8:1.9", when="@0.8", type="build")
-    # nanobind 2.14 tightened argument conversion, and 0.9-0.11's Python
-    # layer passes types the C++ Form constructor no longer accepts:
-    # every form built raises "TypeError: __init__(): incompatible
-    # function arguments". Verified locally - 0.9/0.10/0.11 are clean on
-    # 2.13.0 and fail on both 2.14.0 and 2.15.0, with 100% of the
-    # failures being that one error. Bounded on the released versions
-    # only, since 'main' has been adapted and passes on 2.15.0.
+    # nanobind 2.14 tightened argument conversion, so every form built by
+    # 0.9-0.11 raises the same "incompatible function arguments" error.
+    # They are clean on 2.13.0. Released versions only: main is adapted
+    # and passes on 2.15.0.
     depends_on("py-nanobind@:2.13", when="@0.9:0.11", type="build")
     depends_on("py-scikit-build-core@1: +pyproject", when="@0.11:", type="build")
     depends_on("py-scikit-build-core@0.10: +pyproject", when="@0.9:", type="build")
