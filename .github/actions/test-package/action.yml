@@ -4,6 +4,20 @@ inputs:
   spec:
     description: 'Spack spec syntax'
     required: true
+  spack-ref:
+    description: >-
+      Ref of spack/spack to build with. Pinned by default; override it to
+      test a package against a different spack release or a candidate
+      commit, and note that changing it changes every resulting spec hash,
+      so an overridden run starts from a cold build cache.
+    default: v1.2.2
+  packages-ref:
+    description: >-
+      Ref of spack/spack-packages to build with. A commit rather than a tag,
+      since that repo moves independently of spack itself. Same hash caveat
+      as spack-ref.
+    # spack/spack-packages @ 2026-08-17
+    default: 1ccf95574922e2a7f7ef0351bd67758ad4634b7a
   env-path:
     description: >-
       Directory for the Spack environment the build runs in. It is left in
@@ -52,14 +66,13 @@ runs:
         $sudo rm -rf /var/lib/apt/lists/*
 
     - name: Set up spack
-      # Pinned to the commit v3 points at: spack_ref and packages_ref below
-      # are pinned, so leaving the action that consumes them on a mutable tag
+      # Pinned to the commit v3 points at: the spack refs default to pinned
+      # values, so leaving the action that consumes them on a mutable tag
       # would be the one unpinned input to the build.
       uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
-        spack_ref: v1.2.2
-        # spack/spack-packages @ 2026-08-17
-        packages_ref: 1ccf95574922e2a7f7ef0351bd67758ad4634b7a
+        spack_ref: ${{ inputs.spack-ref }}
+        packages_ref: ${{ inputs.packages-ref }}
 
     # Written to the job environment rather than to this action's steps
     # alone: the names below are what 'spack mirror add' records in
