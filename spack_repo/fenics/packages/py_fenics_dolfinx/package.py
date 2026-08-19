@@ -106,7 +106,9 @@ class PyFenicsDolfinx(PythonPackage):
     # They are clean on 2.13.0. Released versions only: main is adapted
     # and passes on 2.15.0.
     depends_on("py-nanobind@:2.13", when="@0.9:0.11", type="build")
-    depends_on("py-scikit-build-core@1: +pyproject", when="@0.11:", type="build")
+    # +pyproject removed in py-scikit-build-core version 1
+    depends_on("py-scikit-build-core@1:", when="@main", type="build")
+    depends_on("py-scikit-build-core@0.11: +pyproject", when="@0.11:", type="build")
     depends_on("py-scikit-build-core@0.10: +pyproject", when="@0.9:", type="build")
     depends_on("py-scikit-build-core@0.5: +pyproject", when="@0.8:0.9", type="build")
 
