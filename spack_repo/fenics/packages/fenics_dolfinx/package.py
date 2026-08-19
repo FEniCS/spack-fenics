@@ -72,6 +72,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("mpi")
     # HDF5Interface.cpp #if H5_VERSION_GE are not precise enough.
     depends_on("hdf5+mpi@1.12:")
+    depends_on("boost@1.81:", when="@main")
     depends_on("boost@1.70:")
     depends_on("boost@1.70:+timer", when="@:0.9")
     depends_on("pugixml")
