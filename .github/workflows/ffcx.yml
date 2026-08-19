@@ -1,7 +1,6 @@
 name: FFCx
 
-# fenics-ufcx is the C interface from the FFCx repo, so it lives here with
-# py-fenics-ffcx rather than in a workflow of its own.
+# fenics-ufcx is the C interface from the FFCx repo, so it lives here.
 on:
   push:
     branches:
@@ -9,9 +8,8 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Cancel superseded runs: a new commit on a pull request makes the
-# previous run's result irrelevant. Pushes to 'main' are left to finish.
-# The group is per-workflow, so the packages do not cancel each other.
+# Cancel superseded PR runs; pushes to 'main' finish. Per-workflow group,
+# so the packages do not cancel each other.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -20,8 +18,7 @@ jobs:
   fenics-ufcx:
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
-    # Warm-cache jobs peak around an hour; this is headroom for a cold
-    # cache while still catching a hang well before the 6h default.
+    # Cold-cache headroom; still catches a hang well before the 6h default.
     timeout-minutes: 240
     permissions:
       contents: read
@@ -44,8 +41,7 @@ jobs:
   py-fenics-ffcx:
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
-    # Warm-cache jobs peak around an hour; this is headroom for a cold
-    # cache while still catching a hang well before the 6h default.
+    # Cold-cache headroom; still catches a hang well before the 6h default.
     timeout-minutes: 240
     permissions:
       contents: read
