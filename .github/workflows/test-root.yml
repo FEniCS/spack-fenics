@@ -1,0 +1,59 @@
+name: Spack root tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test-root:
+    name: --test=root (${{ matrix.package }})
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: fenics-basix
+            spec: fenics-basix@main build_type=Developer %%gcc@13
+          - package: fenics-dolfinx
+            spec: fenics-dolfinx@main build_type=Developer %%gcc@13 ^mpich
+          - package: py-fenics-basix
+            spec: py-fenics-basix@main build_type=Developer ~ufl %%gcc@13 ^fenics-basix build_type=Developer ^python@3.13
+          - package: py-fenics-dolfinx
+            spec: py-fenics-dolfinx@main build_type=Developer ~petsc4py %%gcc@13 ^fenics-dolfinx build_type=Developer ^python@3.13 ^mpich
+            pytest-addopts: -k 'not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]'
+          - package: py-fenics-dolfinx-petsc-adios2
+            spec: py-fenics-dolfinx@main build_type=Developer +petsc4py +slepc4py %%gcc@13 ^fenics-dolfinx+adios2 build_type=Developer ^petsc+mumps ^python@3.13 ^mpich
+            pytest-addopts: -k 'not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]'
+          - package: py-fenics-ffcx
+            spec: py-fenics-ffcx@main %%gcc@13 ^python@3.13
+          - package: py-fenics-ufl
+            spec: py-fenics-ufl@main %%gcc@13 ^python@3.13
+    env:
+      OMPI_ALLOW_RUN_AS_ROOT: 1
+      OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
+      OMPI_MCA_rmaps_base_oversubscribe: true
+      # Match the DOLFINx workflow's exclusions for these known failures.
+      PYTEST_ADDOPTS: ${{ matrix.pytest-addopts || '' }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: spack-fenics
+      - uses: ./spack-fenics/.github/actions/test-package
+        with:
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
+          spec: ${{ matrix.spec }}
+          test-root: 'true'

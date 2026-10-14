@@ -4,6 +4,9 @@ inputs:
   spec:
     description: 'Spack spec syntax'
     required: true
+  test-root:
+    description: 'Include root test dependencies and run root recipe hooks from source.'
+    default: 'false'
   env-path:
     description: >-
       Directory for the Spack environment. Left in place for the rest of the
@@ -120,22 +123,31 @@ runs:
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
+        TEST_ROOT: ${{ inputs.test-root }}
       run: |
         spack -e "$ENV_DIR" config add concretizer:unify:true
         # Keep the buildcache out of the solve: with reuse on, hashes depend
-        # on what the mirror happens to hold, and 66 jobs are pushing to it.
+        # on what the mirror happens to hold, and concurrent jobs push to it.
         # Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
-        spack -e "$ENV_DIR" concretize --deprecated -j $(nproc)
+        args=(--deprecated -j "$(nproc)")
+        if [ "$TEST_ROOT" = true ]; then
+          args+=(--test=root)
+        fi
+        spack -e "$ENV_DIR" concretize "${args[@]}"
 
     - name: Install
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-      run: >
-        spack -e "$ENV_DIR" install --deprecated -j $(nproc)
-        --log-format junit
-        --log-file log.xml
+        TEST_ROOT: ${{ inputs.test-root }}
+      run: |
+        args=(--deprecated -j "$(nproc)" --log-format junit --log-file log.xml)
+        if [ "$TEST_ROOT" = true ]; then
+          # Cached roots do not execute post-install test hooks.
+          args+=(--test=root --use-buildcache=package:never,dependencies:auto)
+        fi
+        spack -e "$ENV_DIR" install "${args[@]}"
 
     # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
     # so the push would 401 on a step that tests nothing. Reads are
@@ -163,8 +175,12 @@ runs:
       shell: bash
       env:
         SPEC: ${{ inputs.spec }}
+        TEST_ROOT: ${{ inputs.test-root }}
       run: |
         slug=$(printf '%s' "$SPEC" | tr -cs 'A-Za-z0-9.@+' '-' | sed 's/^-//; s/-$//')
+        if [ "$TEST_ROOT" = true ]; then
+          slug="$slug-test-root"
+        fi
         echo "name=$slug" >> "$GITHUB_OUTPUT"
 
     - name: Upload log
