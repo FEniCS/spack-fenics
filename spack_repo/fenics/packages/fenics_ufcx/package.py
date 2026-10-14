@@ -27,6 +27,6 @@ class FenicsUfcx(CMakePackage):
         version("0.8.0", sha256="8a854782dbd119ec1c23c4522a2134d5281e7f1bd2f37d64489f75da055282e3")
 
     depends_on("cmake@3.19:", type="build")
-    depends_on("c", type="build")
+    depends_on("c", type="build", when="^cmake@:4.4")
 
     root_cmakelists_dir = "cmake"
