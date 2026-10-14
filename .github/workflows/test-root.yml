@@ -37,9 +37,9 @@ jobs:
             spec: py-fenics-dolfinx@main build_type=Developer +petsc4py +slepc4py %%gcc@13 ^fenics-dolfinx+adios2 build_type=Developer ^petsc+mumps ^python@3.13 ^mpich
             pytest-addopts: -k 'not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]'
           - package: py-fenics-ffcx
-            spec: py-fenics-ffcx@main %%gcc@13 ^python@3.13
+            spec: py-fenics-ffcx@main ^python@3.13 %%gcc@13
           - package: py-fenics-ufl
-            spec: py-fenics-ufl@main %%gcc@13 ^python@3.13
+            spec: py-fenics-ufl@main ^python@3.13 %%gcc@13
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -52,8 +52,13 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: spack-fenics
-      - uses: ./spack-fenics/.github/actions/test-package
+      - id: spack
+        uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: ${{ matrix.spec }}
           test-root: 'true'
+      - name: Publish build cache
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}

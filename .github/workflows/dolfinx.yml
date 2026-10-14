@@ -17,6 +17,7 @@ jobs:
   fenics-dolfinx:
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write
@@ -50,6 +51,8 @@ jobs:
         shell: spack-bash {0}
         if: ${{ matrix.version != '0.8' }}
         env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
           # Externals, so not loadable specs; name them so the tests match
           # the library's compiler.
           CC: ${{ contains(matrix.spec, 'clang@18') && 'clang-18' || 'gcc' }}
@@ -60,19 +63,24 @@ jobs:
           # re-enable disabled ones; -Wno-error= would not.
           CXXFLAGS: ${{ contains(matrix.spec, 'clang@18') && '-Wno-unknown-warning-option' || '' }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack env activate "$ENV_DIR"
           spack load --first catch2 cmake fenics-dolfinx py-fenics-ffcx
-          spack stage fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
-          spack cd fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
           cmake -B build/test/ -S cpp/test/ -DCMAKE_BUILD_TYPE=Developer
           cmake --build build/test
           cd build/test
           ctest -V --output-on-failure -R unittests_np_1
           ctest -V --output-on-failure -R unittests_np_3
+      - name: Publish build cache
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}
 
   py-fenics-dolfinx:
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
+    timeout-minutes: 240
     permissions:
       contents: read
       packages: write
@@ -110,39 +118,50 @@ jobs:
         if: ${{ matrix.version == '0.9'}}
         shell: spack-bash {0}
         env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
           # KNOWN BAD: test_refine_interval fails on 0.9 with clang-18 only;
           # gcc@13 and 0.10+ pass. Old-release bug, so pin it off.
           SKIP_REFINE: ${{ contains(matrix.spec, 'clang@18') && 'and not test_refine_interval' || '' }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack env activate "$ENV_DIR"
           spack install --deprecated --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
-          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
           python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE" python/test/unit
           mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE" python/test/unit
       # NOTE: 0.8 tests run very slow - skip?
       - name: Run tests (not 0.8 and not 0.9)
         if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
         shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack env activate "$ENV_DIR"
           spack install --add py-pytest py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
-          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
           python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
           mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
       - name: Run petsc4py and adios2 tests
         if: ${{ matrix.version != '0.8' && contains(matrix.spec, '+petsc4py') && contains(matrix.spec, '+adios2') }}
         shell: spack-bash {0}
         env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
           # KNOWN BAD: test_matrix_assembly_rectangular uses PETSc's exact
           # A_sub.equal(A0), so it is BLAS-sensitive: passes on openblas,
           # fails on netlib for 0.9-0.11. netlib is not optional, so pin it
           # off for those; main passes and still runs it.
           SKIP_EXACT: ${{ matrix.version != 'main' && 'and not test_matrix_assembly_rectangular' || '' }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
-          spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
-          spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
+          spack env activate "$ENV_DIR"
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
           python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
           mpiexec -n 3 python -m pytest -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
+      - name: Publish build cache
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}

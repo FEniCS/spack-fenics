@@ -36,6 +36,10 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+      - name: Publish build cache
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}
 
   py-fenics-basix:
     runs-on: ubuntu-24.04
@@ -63,19 +67,29 @@ jobs:
       - name: Run tests (not 0.8)
         if: ${{ matrix.version != '0.8' }}
         shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack env activate "$ENV_DIR"
           spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
           python -m pytest -n auto test/
       # NOTE: 0.8 has test_all_elements_included broken
       - name: Run tests (0.8)
         if: ${{ matrix.version == '0.8' }}
         shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack env activate "$ENV_DIR"
           spack install --deprecated --add py-pytest py-sympy py-pytest-xdist
-          spack stage --deprecated py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          spack stage --deprecated "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
           python -m pytest -n auto -k "not test_all_elements_included" test/
+      - name: Publish build cache
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}

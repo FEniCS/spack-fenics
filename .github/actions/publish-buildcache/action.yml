@@ -1,0 +1,26 @@
+name: publish-buildcache
+description: 'Publish installed packages after the caller''s tests pass.'
+inputs:
+  env-path:
+    description: 'Directory of the tested Spack environment.'
+    required: true
+runs:
+  using: composite
+  steps:
+    # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
+    # so the push would 401 on a step that tests nothing. Reads are
+    # anonymous, so they still take from the cache.
+    - name: Push packages to cache
+      if: >-
+        ${{ success() && (github.event_name != 'pull_request'
+        || github.event.pull_request.head.repo.full_name == github.repository) }}
+      shell: spack-bash {0}
+      env:
+        ENV_DIR: ${{ inputs.env-path }}
+      # No --update-index: it re-reads all ~3600 manifests and writes a
+      # snapshot, so concurrent jobs clobber and race it - a tag listed
+      # before its manifest is readable aborts the step. Nothing reads it:
+      # OCI installs fetch by tag from the spec hash, and reuse is off.
+      run: >
+        spack -e "$ENV_DIR" buildcache push --base-image ubuntu:24.04
+        --allow-missing push-buildcache

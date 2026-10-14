@@ -24,6 +24,9 @@ outputs:
   env-path:
     description: 'Directory of the Spack environment holding the built spec.'
     value: ${{ inputs.env-path }}
+  root-hash:
+    description: 'Hash of the first concretized root, for staging the tested package.'
+    value: ${{ steps.roots.outputs.hash }}
 runs:
   using: "composite"
   steps:
@@ -136,6 +139,15 @@ runs:
         fi
         spack -e "$ENV_DIR" concretize "${args[@]}"
 
+    - name: Record root hash
+      id: roots
+      shell: spack-bash {0}
+      env:
+        ENV_DIR: ${{ inputs.env-path }}
+      run: |
+        root_hash=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; print(ev.active_environment().concrete_roots()[0].dag_hash())')
+        echo "hash=$root_hash" >> "$GITHUB_OUTPUT"
+
     - name: Install
       shell: spack-bash {0}
       env:
@@ -148,24 +160,6 @@ runs:
           args+=(--test=root --use-buildcache=package:never,dependencies:auto)
         fi
         spack -e "$ENV_DIR" install "${args[@]}"
-
-    # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
-    # so the push would 401 on a step that tests nothing. Reads are
-    # anonymous, so they still take from the cache.
-    - name: Push packages to cache
-      if: >-
-        ${{ !cancelled() && (github.event_name != 'pull_request'
-        || github.event.pull_request.head.repo.full_name == github.repository) }}
-      shell: spack-bash {0}
-      env:
-        ENV_DIR: ${{ inputs.env-path }}
-      # No --update-index: it re-reads all ~3600 manifests and writes a
-      # snapshot, so concurrent jobs clobber and race it - a tag listed
-      # before its manifest is readable aborts the step. Nothing reads it:
-      # OCI installs fetch by tag from the spec hash, and reuse is off.
-      run: >
-        spack -e "$ENV_DIR" buildcache push --base-image ubuntu:24.04
-        --allow-missing push-buildcache
 
     # Names must be unique within a run, so squash the spec's punctuation.
     # Not truncated: the distinguishing variants sit at the tail.
@@ -188,5 +182,8 @@ runs:
       uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.log.outputs.name }}-log
-        path: log.xml
+        path: |
+          log.xml
+          ${{ inputs.env-path }}/spack.yaml
+          ${{ inputs.env-path }}/spack.lock
         retention-days: 7

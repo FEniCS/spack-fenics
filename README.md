@@ -89,6 +89,22 @@ special compilers to build fenics-dolfinx):
     source spack-build-env.sh
     # Execute e.g. cmake, should use Spack's compiler-wrapper 
 
+## CI actions
+
+The shared `test-package` action builds a Spack environment and exports its
+`env-path` and the first root's `root-hash`. Put the package under test first
+in the input spec list, and use `spack stage "/$ROOT_HASH"` to fetch its
+concretized source for manual tests. Each build uploads `log.xml`,
+`spack.yaml` and `spack.lock` for diagnosis and reproduction.
+
+Set `test-root: 'true'` to concretize test dependencies and run
+`spack install --test=root`. Root packages build from source so their test
+hooks execute; dependencies may come from the build cache.
+
+Call the `publish-buildcache` action after the job's tests, passing
+`env-path`. It publishes on successful jobs with write access and skips
+forked pull requests.
+
 ## Developer notes
 
 Diffing against an upstream `builtin` package set:

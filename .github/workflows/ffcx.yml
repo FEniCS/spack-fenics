@@ -36,6 +36,10 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-ufcx@${{ matrix.version }} %gcc@13
+      - name: Publish build cache
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}
 
   py-fenics-ffcx:
     runs-on: ubuntu-24.04
@@ -63,9 +67,16 @@ jobs:
       - name: Run tests
         if: ${{ matrix.version != '0.8' }}
         shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack env activate "$ENV_DIR"
           spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-ffcx@${{ matrix.version }}
-          spack cd py-fenics-ffcx@${{ matrix.version }}
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
           python -m pytest -n auto test/
+      - name: Publish build cache
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}

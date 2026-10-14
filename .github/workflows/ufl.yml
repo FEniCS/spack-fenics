@@ -38,9 +38,16 @@ jobs:
       # NOTE: Reference counting changed in Python 3.14, leading to test failure.
       - name: Run tests
         shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
+          spack env activate "$ENV_DIR"
           spack install --add py-pytest py-pytest-xdist
-          spack stage py-fenics-ufl@${{ matrix.version }}
-          spack cd py-fenics-ufl@${{ matrix.version }}
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
           python -m pytest -n auto -k "not test_strip_form_arguments_strips_data_refs" test/
+      - name: Publish build cache
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}
