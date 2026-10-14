@@ -80,7 +80,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        python-version: ["3.11", "3.13"]
+        python-version: ["3.11", "3.13", "3.14"]
         # NOTE: Overspecification of %%clang@18 to fix ABI issues (std::string related?).
         # NOTE: clang sometimes likes stub or Intel MPI.
         spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2 ^mpich",
@@ -113,24 +113,30 @@ jobs:
           # KNOWN BAD: test_refine_interval fails on 0.9 with clang-18 only;
           # gcc@13 and 0.10+ pass. Old-release bug, so pin it off.
           SKIP_REFINE: ${{ contains(matrix.spec, 'clang@18') && 'and not test_refine_interval' || '' }}
+          # KNOWN BAD: test_mpi_comm_refcount fails on 0.9 and 0.10 with
+          # Python 3.14 (changed refcount semantics); pin it off there.
+          SKIP_REFCOUNT: ${{ matrix.python-version == '3.14' && 'and not test_mpi_comm_refcount' || '' }}
         run: |
           spack env activate ${{ steps.spack.outputs.env-path }}
           spack install --deprecated --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
-          python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE" python/test/unit
-          mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE" python/test/unit
+          python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE $SKIP_REFCOUNT" python/test/unit
+          mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE $SKIP_REFCOUNT" python/test/unit
       # NOTE: 0.8 tests run very slow - skip?
       - name: Run tests (not 0.8 and not 0.9)
         if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
         shell: spack-bash {0}
+        env:
+          # KNOWN BAD: see 0.9 step; same on 0.10, fixed from 0.11.
+          SKIP_REFCOUNT: ${{ matrix.version == '0.10' && matrix.python-version == '3.14' && 'and not test_mpi_comm_refcount' || '' }}
         run: |
           spack env activate ${{ steps.spack.outputs.env-path }}
           spack install --add py-pytest py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
           spack cd py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
-          python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
-          mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]" python/test/unit
+          python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_REFCOUNT" python/test/unit
+          mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_REFCOUNT" python/test/unit
       - name: Run petsc4py and adios2 tests
         if: ${{ matrix.version != '0.8' && contains(matrix.spec, '+petsc4py') && contains(matrix.spec, '+adios2') }}
         shell: spack-bash {0}
