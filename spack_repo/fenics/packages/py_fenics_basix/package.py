@@ -88,6 +88,13 @@ class PyFenicsBasix(PythonPackage):
 
     build_directory = "python"
 
+    import_modules = ("basix",)
+
+    def setup_build_environment(self, env):
+        python_pkg = self.spec["python"].package
+        for directory in {python_pkg.platlib, python_pkg.purelib}:
+            env.prepend_path("PYTHONPATH", join_path(self.prefix, directory))
+
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_build(self):

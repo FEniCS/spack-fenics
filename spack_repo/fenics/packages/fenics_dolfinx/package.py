@@ -131,4 +131,5 @@ class FenicsDolfinx(CMakePackage):
         )
         cmake("-S", join_path(self.stage.source_path, "cpp", "test"), "-B", test_dir, *args)
         cmake("--build", test_dir, "--parallel", str(make_jobs))
-        ctest("--test-dir", test_dir, "--output-on-failure", "--parallel", str(make_jobs))
+        # Tests at different MPI sizes share output filenames.
+        ctest("--test-dir", test_dir, "--output-on-failure", "--parallel", "1")
