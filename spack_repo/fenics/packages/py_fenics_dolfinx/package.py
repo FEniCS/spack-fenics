@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.python import PythonPackage
 
 from spack.package import *
@@ -112,6 +114,16 @@ class PyFenicsDolfinx(PythonPackage):
     depends_on("py-scikit-build-core@0.10: +pyproject", when="@0.9:", type="build")
     depends_on("py-scikit-build-core@0.5: +pyproject", when="@0.8:0.9", type="build")
 
+    depends_on("py-pytest@9:", when="@0.10:", type="test")
+    # Older releases define both pytest TOML tables, which pytest 9 rejects.
+    depends_on("py-pytest@:8", when="@:0.9", type="test")
+    depends_on("py-scipy", type="test")
+    depends_on("py-matplotlib", type="test")
+    depends_on("py-networkx", when="@0.10:", type="test")
+    depends_on("py-packaging", when="@0.10:", type="test")
+    depends_on("py-sympy", when="@:0.8", type="test")
+    depends_on("adios2+python", when="^fenics-dolfinx+adios2", type="test")
+
     def config_settings(self, spec, prefix):
         return {
             "build.tool-args": f"-j{make_jobs}",
@@ -120,3 +132,30 @@ class PyFenicsDolfinx(PythonPackage):
         }
 
     build_directory = "python"
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_build(self):
+        args = ["-m", "pytest", "-v", "--import-mode=importlib", "python/test/unit"]
+        markers = []
+        if self.spec.satisfies("@0.9: ~petsc4py"):
+            markers.append("not petsc4py")
+        if self.spec.satisfies("@0.9: ^fenics-dolfinx~adios2"):
+            markers.append("not adios2")
+        if markers:
+            args.extend(["-m", " and ".join(markers)])
+
+        python_pkg = self.spec["python"].package
+        python = self.spec["python"].command
+        python.add_default_env(
+            "PYTHONPATH",
+            os.pathsep.join(
+                [
+                    join_path(self.prefix, python_pkg.platlib),
+                    join_path(self.prefix, python_pkg.purelib),
+                    os.environ.get("PYTHONPATH", ""),
+                ]
+            ),
+        )
+        with working_dir(self.stage.source_path):
+            python(*args)

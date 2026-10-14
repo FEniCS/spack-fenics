@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack_repo.builtin.build_systems.cmake import CMakePackage
+from spack_repo.builtin.build_systems.cmake import CMakeBuilder, CMakePackage
 
 from spack.package import *
 
@@ -93,9 +93,12 @@ class FenicsDolfinx(CMakePackage):
         depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
         depends_on(f"fenics-basix@{ver}", when=f"@{ver}")
         depends_on(f"py-fenics-ffcx@{ver}", when=f"@{ver}", type="test")
-    depends_on("catch2", type="test")
+    depends_on("catch2@3:", type="test")
 
     root_cmakelists_dir = "cpp"
+
+    # Unit tests are built against the installed library.
+    build_time_test_callbacks = ()
 
     def cmake_args(self):
         return [
@@ -109,3 +112,23 @@ class FenicsDolfinx(CMakePackage):
             self.define("DOLFINX_ENABLE_SCOTCH", "partitioners=scotch" in self.spec),
             self.define("DOLFINX_ENABLE_SUPERLU_DIST", "superlu-dist" in self.spec),
         ]
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_build(self):
+        test_dir = join_path(self.stage.path, "spack-test-build")
+        generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
+        args = CMakeBuilder.std_args(self, generator=generator)
+        args.extend(getattr(self, "cmake_flag_args", []))
+        args.extend(
+            [
+                self.define("CMAKE_BUILD_TYPE", "Developer"),
+                self.define("DOLFINX_DIR", join_path(self.prefix, "lib", "cmake", "dolfinx")),
+                self.define(
+                    "Python3_EXECUTABLE", self.spec["py-fenics-ffcx"]["python"].command.path
+                ),
+            ]
+        )
+        cmake("-S", join_path(self.stage.source_path, "cpp", "test"), "-B", test_dir, *args)
+        cmake("--build", test_dir, "--parallel", str(make_jobs))
+        ctest("--test-dir", test_dir, "--output-on-failure", "--parallel", str(make_jobs))

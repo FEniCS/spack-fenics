@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.python import PythonPackage
 
 from spack.package import *
@@ -63,15 +65,19 @@ class PyFenicsBasix(PythonPackage):
     depends_on("py-scikit-build-core+pyproject@0.10:", when="@0.10:", type="build")
     depends_on("py-scikit-build-core+pyproject@0.5.0:", when="@0.8:0.9", type="build")
 
-    with when("+ufl"):
-        for ufl_ver, ver in [
-            ("main", "main"),
-            ("2026.1", "0.11"),
-            ("2025.2", "0.10"),
-            ("2024.2", "0.9"),
-            ("2024.1", "0.8"),
-        ]:
-            depends_on(f"py-fenics-ufl@{ufl_ver}", type="run", when=f"@{ver}")
+    for ufl_ver, ver in [
+        ("main", "main"),
+        ("2026.1", "0.11"),
+        ("2025.2", "0.10"),
+        ("2024.2", "0.9"),
+        ("2024.1", "0.8"),
+    ]:
+        depends_on(f"py-fenics-ufl@{ufl_ver}", type="run", when=f"@{ver} +ufl")
+        depends_on(f"py-fenics-ufl@{ufl_ver}", type="test", when=f"@{ver}")
+    depends_on("py-pytest", type="test")
+    depends_on("py-sympy", type="test")
+    depends_on("py-scipy", type="test")
+    depends_on("py-matplotlib", type="test")
 
     def config_settings(self, spec, prefix):
         return {
@@ -81,3 +87,21 @@ class PyFenicsBasix(PythonPackage):
         }
 
     build_directory = "python"
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_build(self):
+        python_pkg = self.spec["python"].package
+        python = self.spec["python"].command
+        python.add_default_env(
+            "PYTHONPATH",
+            os.pathsep.join(
+                [
+                    join_path(self.prefix, python_pkg.platlib),
+                    join_path(self.prefix, python_pkg.purelib),
+                    os.environ.get("PYTHONPATH", ""),
+                ]
+            ),
+        )
+        with working_dir(self.stage.source_path):
+            python("-m", "pytest", "-v", "--import-mode=importlib", "test")

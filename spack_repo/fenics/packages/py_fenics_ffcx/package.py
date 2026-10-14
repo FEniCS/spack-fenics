@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.python import PythonPackage
 
 from spack.package import *
@@ -57,6 +59,20 @@ class PyFenicsFfcx(PythonPackage):
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_build(self):
-        with working_dir("test"):
-            pytest = which("pytest", required=True)
-            pytest("--ignore=test_cmdline.py")
+        python_pkg = self.spec["python"].package
+        python = self.spec["python"].command
+        python.add_default_env(
+            "PYTHONPATH",
+            os.pathsep.join(
+                [
+                    join_path(self.prefix, python_pkg.platlib),
+                    join_path(self.prefix, python_pkg.purelib),
+                    os.environ.get("PYTHONPATH", ""),
+                ]
+            ),
+        )
+        python.add_default_env(
+            "PATH", os.pathsep.join([join_path(self.prefix, "bin"), os.environ["PATH"]])
+        )
+        with working_dir(join_path(self.stage.source_path, "test")):
+            python("-m", "pytest", "-v", "--import-mode=append", ".")
