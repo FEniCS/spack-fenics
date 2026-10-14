@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - uses: actions/checkout@v7
         with:
           # Full history: the diff base is the ref's previous tip.
