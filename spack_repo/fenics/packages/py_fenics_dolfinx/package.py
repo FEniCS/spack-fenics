@@ -150,7 +150,7 @@ class PyFenicsDolfinx(PythonPackage):
 
     @run_after("install")
     @on_package_attributes(run_tests=True)
-    def check_build(self):
+    def check_install(self):
         args = ["-m", "pytest", "-v", "--import-mode=importlib", "python/test/unit"]
         markers = []
         if self.spec.satisfies("@0.9: ~petsc4py"):
@@ -161,20 +161,19 @@ class PyFenicsDolfinx(PythonPackage):
             args.extend(["-m", " and ".join(markers)])
 
         # Retain known upstream release/compiler exclusions for both MPI sizes.
-        excluded = ["test_cffi_expression"]
+        excluded = []
         if self.spec.satisfies("@0.9"):
             excluded.append("test_cube_distance")
             if self.spec["cxx"].satisfies("clang@18"):
                 excluded.append("test_refine_interval")
-        if self.spec.satisfies("@0.10:"):
-            excluded.append("test_symmetry_interior_facet_assembly[mesh1]")
         # Python 3.14 changed reference-count semantics.
         if self.spec.satisfies("@0.9:0.10 ^python@3.14:"):
             excluded.append("test_mpi_comm_refcount")
         # Exact PETSc matrix equality is sensitive to the BLAS implementation.
         if self.spec.satisfies("@0.9:0.11 ^netlib-lapack"):
             excluded.append("test_matrix_assembly_rectangular")
-        args.extend(["-k", " and ".join("not " + name for name in excluded)])
+        if excluded:
+            args.extend(["-k", " and ".join("not " + name for name in excluded)])
 
         python = self.spec["python"].command
         mpiexec = Executable(join_path(self.spec["mpi"].prefix.bin, "mpiexec"))
