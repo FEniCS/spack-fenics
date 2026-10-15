@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.python import PythonPackage
 
 from spack.package import *
@@ -26,6 +28,9 @@ class PyFenicsBasix(PythonPackage):
     version("0.9.0", sha256="60e96b2393084729b261cb10370f0e44d12735ab3dbd1f15890dec23b9e85329")
     with default_args(deprecated=True):
         version("0.8.0", sha256="b299af82daf8fa3e4845e17f202491fe71b313bf6ab64c767a5287190b3dd7fe")
+
+    # Basix 0.8 wraps nanobind enums; extract their integer value directly.
+    patch("enum-int.patch", when="@0.8")
 
     # CMake build type
     variant(
@@ -63,15 +68,20 @@ class PyFenicsBasix(PythonPackage):
     depends_on("py-scikit-build-core+pyproject@0.10:", when="@0.10:", type="build")
     depends_on("py-scikit-build-core+pyproject@0.5.0:", when="@0.8:0.9", type="build")
 
-    with when("+ufl"):
-        for ufl_ver, ver in [
-            ("main", "main"),
-            ("2026.1", "0.11"),
-            ("2025.2", "0.10"),
-            ("2024.2", "0.9"),
-            ("2024.1", "0.8"),
-        ]:
-            depends_on(f"py-fenics-ufl@{ufl_ver}", type="run", when=f"@{ver}")
+    for ufl_ver, ver in [
+        ("main", "main"),
+        ("2026.1", "0.11"),
+        ("2025.2", "0.10"),
+        ("2024.2", "0.9"),
+        ("2024.1", "0.8"),
+    ]:
+        depends_on(f"py-fenics-ufl@{ufl_ver}", type="run", when=f"@{ver} +ufl")
+        depends_on(f"py-fenics-ufl@{ufl_ver}", type="test", when=f"@{ver}")
+    depends_on("py-pytest", type="test")
+    depends_on("py-pytest-xdist", type="test")
+    depends_on("py-sympy", type="test")
+    depends_on("py-scipy", type="test")
+    depends_on("py-matplotlib", type="test")
 
     def config_settings(self, spec, prefix):
         return {
@@ -81,3 +91,39 @@ class PyFenicsBasix(PythonPackage):
         }
 
     build_directory = "python"
+
+    import_modules = ("basix",)
+
+    def setup_build_environment(self, env):
+        python_pkg = self.spec["python"].package
+        for directory in {python_pkg.platlib, python_pkg.purelib}:
+            env.prepend_path("PYTHONPATH", join_path(self.prefix, directory))
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_build(self):
+        python_pkg = self.spec["python"].package
+        python = self.spec["python"].command
+        python.add_default_env(
+            "PYTHONPATH",
+            os.pathsep.join(
+                [
+                    join_path(self.prefix, python_pkg.platlib),
+                    join_path(self.prefix, python_pkg.purelib),
+                    os.environ.get("PYTHONPATH", ""),
+                ]
+            ),
+        )
+        with working_dir(self.stage.source_path):
+            python("-m", "pytest", "-v", "--import-mode=importlib", "test")
+
+    @run_after("install")
+    def cache_test_sources(self):
+        cache_extra_test_sources(self, "demo/python/demo_create_and_tabulate.py")
+
+    def test_create_and_tabulate(self):
+        """Run the upstream create-and-tabulate demo."""
+        demo = join_path(
+            self.test_suite.current_test_cache_dir, "demo", "python", "demo_create_and_tabulate.py"
+        )
+        self.spec["python"].command(demo)
