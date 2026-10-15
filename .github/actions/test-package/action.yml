@@ -162,7 +162,7 @@ runs:
         args=(--deprecated -j "$(nproc)" --log-format junit --log-file log.xml)
         # Explicitly install test dependencies even when the root is cached.
         if [ "$TEST_ROOT" = true ] || [ "$TEST_DEPENDENCIES" = true ]; then
-          spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" --test=root --only dependencies
+          spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" --test=root --only dependencies --include-build-deps
         fi
         if [ "$TEST_ROOT" = true ]; then
           args+=(--test=root --use-buildcache=package:never,dependencies:auto)

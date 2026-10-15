@@ -89,10 +89,9 @@ jobs:
           ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
           spack env activate "$ENV_DIR"
-          spack install --add py-pytest py-sympy py-pytest-xdist
           spack stage "/$ROOT_HASH"
           spack cd "/$ROOT_HASH"
-          python -m pytest -n auto test/
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto test/
       # NOTE: 0.8 has test_all_elements_included broken
       - name: Run tests (0.8)
         if: ${{ matrix.version == '0.8' }}
@@ -102,10 +101,9 @@ jobs:
           ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
           spack env activate "$ENV_DIR"
-          spack install --deprecated --add py-pytest py-sympy py-pytest-xdist
           spack stage --deprecated "/$ROOT_HASH"
           spack cd "/$ROOT_HASH"
-          python -m pytest -n auto -k "not test_all_elements_included" test/
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto -k "not test_all_elements_included" test/
       - name: Publish build cache
         if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache

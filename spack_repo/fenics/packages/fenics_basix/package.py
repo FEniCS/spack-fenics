@@ -36,9 +36,9 @@ class FenicsBasix(CMakePackage):
         values=("Debug", "Release", "RelWithDebInfo", "MinSizeRel", "Developer"),
     )
 
-    depends_on("cxx", type=("build", "test"))
+    depends_on("cxx", type="build")
     # test/test_cmake enables C as well as C++.
-    depends_on("c", type=("build", "test"))
+    depends_on("c", type="build")
 
     depends_on("cmake@3.21:", when="@0.9:", type=("build", "test"))
     depends_on("cmake@3.19:", when="@:0.8", type=("build", "test"))

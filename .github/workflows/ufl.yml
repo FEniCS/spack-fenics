@@ -55,10 +55,9 @@ jobs:
           ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
           spack env activate "$ENV_DIR"
-          spack install --add py-pytest py-pytest-xdist
           spack stage "/$ROOT_HASH"
           spack cd "/$ROOT_HASH"
-          python -m pytest -n auto -k "not test_strip_form_arguments_strips_data_refs" test/
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto -k "not test_strip_form_arguments_strips_data_refs" test/
       - name: Publish build cache
         if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache

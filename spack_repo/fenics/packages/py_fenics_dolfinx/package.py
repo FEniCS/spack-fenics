@@ -117,6 +117,7 @@ class PyFenicsDolfinx(PythonPackage):
     depends_on("py-pytest@9:", when="@0.10:", type="test")
     # Older releases define both pytest TOML tables, which pytest 9 rejects.
     depends_on("py-pytest@:8", when="@:0.9", type="test")
+    depends_on("py-pytest-xdist", type="test")
     depends_on("py-scipy", type="test")
     depends_on("py-matplotlib", type="test")
     depends_on("py-networkx", when="@0.10:", type="test")

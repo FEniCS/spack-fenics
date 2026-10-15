@@ -54,6 +54,7 @@ class PyFenicsFfcx(PythonPackage):
     depends_on("py-fenics-basix@0.8", type=("build", "run"), when="@0.8")
 
     depends_on("py-pytest@6:", type="test")
+    depends_on("py-pytest-xdist", type="test")
     depends_on("py-sympy", type="test")
     depends_on("py-numba", type="test")
 

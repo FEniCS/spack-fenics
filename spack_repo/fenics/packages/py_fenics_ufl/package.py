@@ -81,6 +81,7 @@ class PyFenicsUfl(PythonPackage):
     depends_on("py-numpy", type=("build", "run"))
 
     depends_on("py-pytest", type="test")
+    depends_on("py-pytest-xdist", type="test")
 
     import_modules = ("ufl",)
 

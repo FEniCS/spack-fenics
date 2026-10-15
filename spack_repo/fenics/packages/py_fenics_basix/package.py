@@ -75,6 +75,7 @@ class PyFenicsBasix(PythonPackage):
         depends_on(f"py-fenics-ufl@{ufl_ver}", type="run", when=f"@{ver} +ufl")
         depends_on(f"py-fenics-ufl@{ufl_ver}", type="test", when=f"@{ver}")
     depends_on("py-pytest", type="test")
+    depends_on("py-pytest-xdist", type="test")
     depends_on("py-sympy", type="test")
     depends_on("py-scipy", type="test")
     depends_on("py-matplotlib", type="test")

@@ -48,8 +48,8 @@ class FenicsDolfinx(CMakePackage):
         multi=True,
     )
 
-    depends_on("c", type=("build", "test"))  # HDF5 dependency requires C in CMake config
-    depends_on("cxx", type=("build", "test"))
+    depends_on("c", type="build")  # HDF5 dependency requires C in CMake config
+    depends_on("cxx", type="build")
 
     conflicts("%gcc@:12", when="@0.10:")
 

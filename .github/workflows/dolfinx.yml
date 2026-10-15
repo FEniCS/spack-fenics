@@ -52,9 +52,7 @@ jobs:
         run: spack -v -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
       # FFCx compilation of poisson.py fails in ffcx/codegeneration/C/finite_element.py
       #
-      # No 'spack build-env': it needs build-only deps that are absent when
-      # the spec comes whole from the buildcache. 'spack load' gives the
-      # runtime environment the tests need, as dolfinx's own ci.yml does.
+      # The shared action installs build/test dependencies even for cached roots.
       - name: Run tests (skip 0.8)
         shell: spack-bash {0}
         if: ${{ matrix.version != '0.8' }}
@@ -146,11 +144,10 @@ jobs:
           SKIP_REFCOUNT: ${{ matrix.python-version == '3.14' && 'and not test_mpi_comm_refcount' || '' }}
         run: |
           spack env activate "$ENV_DIR"
-          spack install --deprecated --add py-pytest@8.4 py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage "/$ROOT_HASH"
           spack cd "/$ROOT_HASH"
-          python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE $SKIP_REFCOUNT" python/test/unit
-          mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE $SKIP_REFCOUNT" python/test/unit
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE $SKIP_REFCOUNT" python/test/unit
+          spack build-env "/$ROOT_HASH" -- mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_cube_distance $SKIP_REFINE $SKIP_REFCOUNT" python/test/unit
       # NOTE: 0.8 tests run very slow - skip?
       - name: Run tests (not 0.8 and not 0.9)
         if: ${{ matrix.version != '0.8' && matrix.version != '0.9'}}
@@ -162,11 +159,10 @@ jobs:
           SKIP_REFCOUNT: ${{ matrix.version == '0.10' && matrix.python-version == '3.14' && 'and not test_mpi_comm_refcount' || '' }}
         run: |
           spack env activate "$ENV_DIR"
-          spack install --add py-pytest py-scipy py-pytest-xdist ^python@${{ matrix.python-version }}
           spack stage "/$ROOT_HASH"
           spack cd "/$ROOT_HASH"
-          python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_REFCOUNT" python/test/unit
-          mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_REFCOUNT" python/test/unit
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_REFCOUNT" python/test/unit
+          spack build-env "/$ROOT_HASH" -- mpiexec -n 3 python -m pytest -m "not petsc4py and not adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_REFCOUNT" python/test/unit
       - name: Run petsc4py and adios2 tests
         if: ${{ matrix.version != '0.8' && contains(matrix.spec, '+petsc4py') && contains(matrix.spec, '+adios2') }}
         shell: spack-bash {0}
@@ -182,8 +178,8 @@ jobs:
           spack env activate "$ENV_DIR"
           spack stage "/$ROOT_HASH"
           spack cd "/$ROOT_HASH"
-          python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
-          mpiexec -n 3 python -m pytest -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
+          spack build-env "/$ROOT_HASH" -- mpiexec -n 3 python -m pytest -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
       - name: Publish build cache
         if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache
