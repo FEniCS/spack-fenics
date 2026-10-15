@@ -101,8 +101,11 @@ class PyFenicsBasix(PythonPackage):
     @on_package_attributes(run_tests=True)
     def check_build(self):
         python = self.spec["python"].command
+        args = ["-m", "pytest", "-v", "--import-mode=importlib", "-n", str(make_jobs), "test"]
+        if self.spec.satisfies("@0.8"):
+            args.extend(["-k", "not test_all_elements_included"])
         with working_dir(self.stage.source_path):
-            python("-m", "pytest", "-v", "--import-mode=importlib", "test")
+            python(*args)
 
     @run_after("install")
     def cache_test_sources(self):
