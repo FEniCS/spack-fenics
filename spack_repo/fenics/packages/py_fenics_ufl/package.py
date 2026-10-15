@@ -92,10 +92,11 @@ class PyFenicsUfl(PythonPackage):
 
     @run_after("install")
     @on_package_attributes(run_tests=True)
-    def check_build(self):
+    def check_install(self):
         python = self.spec["python"].command
         args = ["-m", "pytest", "-v", "--import-mode=append", "-n", str(make_jobs), "."]
-        if self.spec.satisfies("^python@3.14:"):
+        # UFL 2025.2 fixes Python 3.14 borrowed-reference counts.
+        if self.spec.satisfies("@:2025.1 ^python@3.14:"):
             args.extend(["-k", "not test_strip_form_arguments_strips_data_refs"])
         with working_dir(join_path(self.stage.source_path, "test")):
             python(*args)
