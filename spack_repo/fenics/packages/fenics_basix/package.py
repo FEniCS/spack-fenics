@@ -48,7 +48,8 @@ class FenicsBasix(CMakePackage):
     conflicts("%gcc@:9.10", msg="fenics-basix requires GCC-10 or newer for C++20 support")
     conflicts("%clang@:9.10", msg="fenics-basix requires Clang-10 or newer for C++20 support")
 
-    depends_on("ninja", type="test")
+    depends_on("ninja", when="generator=ninja", type="test")
+    depends_on("gmake", when="generator=make", type="test")
 
     root_cmakelists_dir = "cpp"
     build_time_test_callbacks = ()
@@ -62,7 +63,7 @@ class FenicsBasix(CMakePackage):
 
     @run_after("install")
     @on_package_attributes(run_tests=True)
-    def check_build(self):
+    def check_install(self):
         test_dir = join_path(self.stage.path, "spack-test-build")
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
@@ -94,19 +95,20 @@ class FenicsBasix(CMakePackage):
         source = join_path(
             self.test_suite.current_test_cache_dir, "demo", "cpp", "demo_create_and_tabulate"
         )
-        prefixes = ";".join(str(dep.prefix) for dep in self.spec.traverse(deptype=("link", "run")))
-        cmake(
-            "-S",
-            source,
-            "-B",
-            "demo-build",
-            "-G",
-            "Ninja",
-            "-DCMAKE_BUILD_TYPE=Developer",
-            f"-DCMAKE_CXX_COMPILER={self.spec['cxx'].package.cxx}",
-            f"-DCMAKE_PREFIX_PATH={prefixes}",
+        generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
+        args = CMakeBuilder.std_args(self, generator=generator)
+        args.extend(getattr(self, "cmake_flag_args", []))
+        args.extend(
+            [
+                self.define("CMAKE_BUILD_TYPE", "Developer"),
+                self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
+            ]
         )
-        cmake("--build", "demo-build")
+        # Spack 1.2.2 can omit compiler environment variables in test context.
+        if not os.environ.get("CXX"):
+            args.append(self.define("CMAKE_CXX_COMPILER", self.spec["cxx"].package.cxx))
+        cmake("-S", source, "-B", "demo-build", *args)
+        cmake("--build", "demo-build", "--parallel", str(make_jobs))
         suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
         executable = join_path("demo-build", "demo_create_and_tabulate" + suffix)
         Executable(executable)()
