@@ -137,6 +137,11 @@ class FenicsDolfinx(CMakePackage):
                 self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
             ]
         )
+        if self.spec["cxx"].satisfies("clang@:18"):
+            # Older Clang rejects warning options used by newer test sources.
+            cmake.add_default_env(
+                "CXXFLAGS", os.environ.get("CXXFLAGS", "") + " -Wno-unknown-warning-option"
+            )
         cmake("-S", join_path(self.stage.source_path, "cpp", "test"), "-B", test_dir, *args)
         cmake("--build", test_dir, "--parallel", str(make_jobs))
         # Tests at different MPI sizes share output filenames.
