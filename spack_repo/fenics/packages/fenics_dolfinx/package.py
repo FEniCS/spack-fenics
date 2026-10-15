@@ -2,7 +2,9 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack_repo.builtin.build_systems.cmake import CMakePackage
+import os
+
+from spack_repo.builtin.build_systems.cmake import CMakeBuilder, CMakePackage
 
 from spack.package import *
 
@@ -65,9 +67,10 @@ class FenicsDolfinx(CMakePackage):
 
     conflicts("~petsc", when="+slepc", msg="+slepc requires +petsc")
 
-    depends_on("cmake@3.26:", when="@0.11:", type="build")
-    depends_on("cmake@3.21:", when="@0.9:", type="build")
-    depends_on("cmake@3.19:", when="@:0.8", type="build")
+    depends_on("cmake@3.26:", when="@0.11:", type=("build", "test"))
+    depends_on("cmake@3.21:", when="@0.9:", type=("build", "test"))
+    depends_on("cmake@3.19:", when="@:0.8", type=("build", "test"))
+    # Spack 1.2.2 fails to solve this virtual with both build and test types.
     depends_on("pkgconfig", type="build")
     depends_on("mpi")
     # HDF5Interface.cpp #if H5_VERSION_GE are not precise enough.
@@ -93,9 +96,14 @@ class FenicsDolfinx(CMakePackage):
         depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
         depends_on(f"fenics-basix@{ver}", when=f"@{ver}")
         depends_on(f"py-fenics-ffcx@{ver}", when=f"@{ver}", type="test")
-    depends_on("catch2", type="test")
+    depends_on("catch2@3:", type="test")
+
+    depends_on("ninja", type="test")
 
     root_cmakelists_dir = "cpp"
+
+    # Unit tests are built against the installed library.
+    build_time_test_callbacks = ()
 
     def cmake_args(self):
         return [
@@ -109,3 +117,67 @@ class FenicsDolfinx(CMakePackage):
             self.define("DOLFINX_ENABLE_SCOTCH", "partitioners=scotch" in self.spec),
             self.define("DOLFINX_ENABLE_SUPERLU_DIST", "superlu-dist" in self.spec),
         ]
+
+    def setup_build_environment(self, env):
+        # Spack clears *_ROOT variables; preserve explicit MPI container opt-ins.
+        for name in ("OMPI_ALLOW_RUN_AS_ROOT", "PRTE_ALLOW_RUN_AS_ROOT"):
+            if name in os.environ:
+                env.set(name, os.environ[name])
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_build(self):
+        test_dir = join_path(self.stage.path, "spack-test-build")
+        generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
+        args = CMakeBuilder.std_args(self, generator=generator)
+        args.extend(getattr(self, "cmake_flag_args", []))
+        # GNUInstallDirs puts CMAKE_INSTALL_LIBDIR at lib64 on some distributions.
+        libdir = next(
+            (
+                d
+                for d in (self.prefix.lib, self.prefix.lib64)
+                if os.path.isdir(join_path(d, "cmake", "dolfinx"))
+            ),
+            self.prefix.lib,
+        )
+        args.extend(
+            [
+                self.define("CMAKE_BUILD_TYPE", "Developer"),
+                self.define("DOLFINX_DIR", join_path(libdir, "cmake", "dolfinx")),
+            ]
+        )
+        cmake("-S", join_path(self.stage.source_path, "cpp", "test"), "-B", test_dir, *args)
+        cmake("--build", test_dir, "--parallel", str(make_jobs))
+        # Tests at different MPI sizes share output filenames.
+        ctest("--test-dir", test_dir, "--output-on-failure", "--parallel", "1")
+
+    @run_after("install")
+    def cache_test_sources(self):
+        demo = "poisson" if "+petsc" in self.spec else "interpolation-io"
+        cache_extra_test_sources(self, join_path("cpp", "demo", demo))
+
+    test_requires_compiler = True
+
+    def test_demo(self):
+        """Build and run an upstream demo against the installed library."""
+        cmake = self.spec["cmake"].command
+        demo = "poisson" if "+petsc" in self.spec else "interpolation-io"
+        source = join_path(self.test_suite.current_test_cache_dir, "cpp", "demo", demo)
+        prefixes = ";".join(str(dep.prefix) for dep in self.spec.traverse(deptype=("link", "run")))
+        cmake(
+            "-S",
+            source,
+            "-B",
+            "demo-build",
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Developer",
+            f"-DCMAKE_C_COMPILER={self.spec['c'].package.cc}",
+            f"-DCMAKE_CXX_COMPILER={self.spec['cxx'].package.cxx}",
+            f"-DCMAKE_PREFIX_PATH={prefixes}",
+            f"-DPKG_CONFIG_EXECUTABLE={self.spec['pkgconfig'].command.path}",
+        )
+        cmake("--build", "demo-build")
+        suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
+        executable = join_path("demo-build", "demo_" + demo + suffix)
+        Executable(executable)()
