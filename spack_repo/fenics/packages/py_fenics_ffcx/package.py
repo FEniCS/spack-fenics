@@ -73,7 +73,18 @@ class PyFenicsFfcx(PythonPackage):
             "PATH", os.pathsep.join([join_path(self.prefix, "bin"), os.environ["PATH"]])
         )
         with working_dir(join_path(self.stage.source_path, "test")):
-            python("-m", "pytest", "-v", "--import-mode=append", ".")
+            # Keep tests generating the same module on one xdist worker.
+            python(
+                "-m",
+                "pytest",
+                "-v",
+                "--import-mode=append",
+                "-n",
+                str(make_jobs),
+                "--dist",
+                "loadfile",
+                ".",
+            )
 
     @run_after("install")
     def cache_test_sources(self):
