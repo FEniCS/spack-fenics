@@ -102,6 +102,7 @@ class FenicsBasix(CMakePackage):
             "-G",
             "Ninja",
             "-DCMAKE_BUILD_TYPE=Developer",
+            f"-DCMAKE_CXX_COMPILER={self.spec['cxx'].package.cxx}",
             f"-DCMAKE_PREFIX_PATH={prefixes}",
         )
         cmake("--build", "smoke-build")
