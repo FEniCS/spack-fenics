@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.python import PythonPackage
 
 from spack.package import *
@@ -28,6 +30,9 @@ class PyFenicsDolfinx(PythonPackage):
     version("0.9.0", sha256="b266c74360c2590c5745d74768c04568c965b44739becca4cd6b5aa58cdbbbd1")
     with default_args(deprecated=True):
         version("0.8.0", sha256="acf3104d9ecc0380677a6faf69eabfafc58d0cce43f7777e1307b95701c7cad9")
+
+    # Backport the test condition from DOLFINx aa9570ddf8 (#4397).
+    patch("cffi-complex-skip.patch", when="@0.10:0.11")
 
     # CMake build type
     variant(
@@ -112,6 +117,17 @@ class PyFenicsDolfinx(PythonPackage):
     depends_on("py-scikit-build-core@0.10: +pyproject", when="@0.9:", type="build")
     depends_on("py-scikit-build-core@0.5: +pyproject", when="@0.8:0.9", type="build")
 
+    depends_on("py-pytest@9:", when="@0.10:", type="test")
+    # Older releases define both pytest TOML tables, which pytest 9 rejects.
+    depends_on("py-pytest@:8", when="@:0.9", type="test")
+    depends_on("py-pytest-xdist", type="test")
+    depends_on("py-scipy", type="test")
+    depends_on("py-matplotlib", type="test")
+    depends_on("py-networkx", when="@0.10:", type="test")
+    depends_on("py-packaging", when="@0.10:", type="test")
+    depends_on("py-sympy", when="@:0.8", type="test")
+    depends_on("adios2+python", when="^fenics-dolfinx+adios2", type="test")
+
     def config_settings(self, spec, prefix):
         return {
             "build.tool-args": f"-j{make_jobs}",
@@ -120,3 +136,60 @@ class PyFenicsDolfinx(PythonPackage):
         }
 
     build_directory = "python"
+
+    import_modules = ("dolfinx",)
+
+    def setup_build_environment(self, env):
+        # Spack clears *_ROOT variables; preserve explicit MPI container opt-ins.
+        for name in ("OMPI_ALLOW_RUN_AS_ROOT", "PRTE_ALLOW_RUN_AS_ROOT"):
+            if name in os.environ:
+                env.set(name, os.environ[name])
+        python_pkg = self.spec["python"].package
+        for directory in {python_pkg.platlib, python_pkg.purelib}:
+            env.prepend_path("PYTHONPATH", join_path(self.prefix, directory))
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_build(self):
+        args = ["-m", "pytest", "-v", "--import-mode=importlib", "python/test/unit"]
+        markers = []
+        if self.spec.satisfies("@0.9: ~petsc4py"):
+            markers.append("not petsc4py")
+        if self.spec.satisfies("@0.9: ^fenics-dolfinx~adios2"):
+            markers.append("not adios2")
+        if markers:
+            args.extend(["-m", " and ".join(markers)])
+
+        python_pkg = self.spec["python"].package
+        python = self.spec["python"].command
+        python.add_default_env(
+            "PYTHONPATH",
+            os.pathsep.join(
+                [
+                    join_path(self.prefix, python_pkg.platlib),
+                    join_path(self.prefix, python_pkg.purelib),
+                    os.environ.get("PYTHONPATH", ""),
+                ]
+            ),
+        )
+        with working_dir(self.stage.source_path):
+            python(*args)
+
+    @property
+    def poisson_demo(self):
+        name = (
+            "demo_poisson-matrix-free.py"
+            if self.spec.satisfies("@0.11:")
+            else "demo_poisson_matrix_free.py"
+        )
+        return join_path("python", "demo", name)
+
+    @run_after("install")
+    def cache_test_sources(self):
+        cache_extra_test_sources(self, self.poisson_demo)
+
+    def test_poisson(self):
+        """Run the upstream matrix-free Poisson demo, including PETSc-free builds."""
+        self.spec["python"].command(
+            join_path(self.test_suite.current_test_cache_dir, self.poisson_demo)
+        )
