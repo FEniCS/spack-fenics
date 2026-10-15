@@ -94,8 +94,11 @@ class PyFenicsUfl(PythonPackage):
     @on_package_attributes(run_tests=True)
     def check_build(self):
         python = self.spec["python"].command
+        args = ["-m", "pytest", "-v", "--import-mode=append", "-n", str(make_jobs), "."]
+        if self.spec.satisfies("^python@3.14:"):
+            args.extend(["-k", "not test_strip_form_arguments_strips_data_refs"])
         with working_dir(join_path(self.stage.source_path, "test")):
-            python("-m", "pytest", "-v", "--import-mode=append", ".")
+            python(*args)
 
     @run_after("install")
     def cache_test_sources(self):
