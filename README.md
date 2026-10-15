@@ -93,8 +93,8 @@ special compilers to build fenics-dolfinx):
 
 The shared `test-package` action builds a Spack environment and exports its
 `env-path` and the first root's `root-hash`. Put the package under test first
-in the input spec list, and use `spack stage "/$ROOT_HASH"` to fetch its
-concretized source for manual tests. Each build uploads `log.xml`,
+in the input spec list. Use `spack patch "/$ROOT_HASH"` when fetching source
+for manual tests that need recipe patches; `spack stage` only extracts it. Each build uploads `log.xml`,
 `spack.yaml` and `spack.lock` for diagnosis and reproduction.
 
 Set `test-dependencies: 'true'` to concretize and install root test

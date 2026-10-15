@@ -83,7 +83,8 @@ jobs:
           spack env activate "$ENV_DIR"
           spack stage "/$ROOT_HASH"
           spack cd "/$ROOT_HASH"
-          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto test/
+          # Numba tests generate the same module; keep each file on one worker.
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto --dist loadfile test/
       - name: Publish build cache
         if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache

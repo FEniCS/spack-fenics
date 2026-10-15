@@ -31,6 +31,9 @@ class PyFenicsDolfinx(PythonPackage):
     with default_args(deprecated=True):
         version("0.8.0", sha256="acf3104d9ecc0380677a6faf69eabfafc58d0cce43f7777e1307b95701c7cad9")
 
+    # Backport the test condition from DOLFINx aa9570ddf8 (#4397).
+    patch("cffi-complex-skip.patch", when="@0.10:0.11")
+
     # CMake build type
     variant(
         "build_type",
