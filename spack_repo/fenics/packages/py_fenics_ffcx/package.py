@@ -67,7 +67,7 @@ class PyFenicsFfcx(PythonPackage):
 
     @run_after("install")
     @on_package_attributes(run_tests=True)
-    def check_build(self):
+    def check_install(self):
         python = self.spec["python"].command
         python.add_default_env(
             "PATH", os.pathsep.join([join_path(self.prefix, "bin"), os.environ["PATH"]])
