@@ -175,6 +175,21 @@ class PyFenicsDolfinx(PythonPackage):
         with working_dir(self.stage.source_path):
             python(*args)
 
-    def test_interpolation(self):
-        """Check installed dolfinx functionality without the build tree."""
-        self.spec["python"].command(join_path(self.test_suite.current_test_data_dir, "smoke.py"))
+    @property
+    def poisson_demo(self):
+        name = (
+            "demo_poisson-matrix-free.py"
+            if self.spec.satisfies("@0.11:")
+            else "demo_poisson_matrix_free.py"
+        )
+        return join_path("python", "demo", name)
+
+    @run_after("install")
+    def cache_test_sources(self):
+        cache_extra_test_sources(self, self.poisson_demo)
+
+    def test_poisson(self):
+        """Run the upstream matrix-free Poisson demo, including PETSc-free builds."""
+        self.spec["python"].command(
+            join_path(self.test_suite.current_test_cache_dir, self.poisson_demo)
+        )

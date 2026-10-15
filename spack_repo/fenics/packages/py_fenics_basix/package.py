@@ -117,6 +117,13 @@ class PyFenicsBasix(PythonPackage):
         with working_dir(self.stage.source_path):
             python("-m", "pytest", "-v", "--import-mode=importlib", "test")
 
-    def test_tabulation(self):
-        """Check installed basix functionality without the build tree."""
-        self.spec["python"].command(join_path(self.test_suite.current_test_data_dir, "smoke.py"))
+    @run_after("install")
+    def cache_test_sources(self):
+        cache_extra_test_sources(self, "demo/python/demo_create_and_tabulate.py")
+
+    def test_create_and_tabulate(self):
+        """Run the upstream create-and-tabulate demo."""
+        demo = join_path(
+            self.test_suite.current_test_cache_dir, "demo", "python", "demo_create_and_tabulate.py"
+        )
+        self.spec["python"].command(demo)

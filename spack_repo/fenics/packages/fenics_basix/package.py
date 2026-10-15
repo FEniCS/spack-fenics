@@ -87,25 +87,34 @@ class FenicsBasix(CMakePackage):
         executable = "a.out.exe" if self.spec.satisfies("platform=windows") else "a.out"
         Executable(join_path(test_dir, executable))()
 
+    @run_after("install")
+    def cache_test_sources(self):
+        sources = ["demo/cpp/demo_create_and_tabulate"]
+        if os.path.isdir(join_path(self.stage.source_path, "cmake")):
+            sources.append("cmake")
+        cache_extra_test_sources(self, sources)
+
     test_requires_compiler = True
 
-    def test_link(self):
-        """Compile and run a small client against the installed library."""
+    def test_create_and_tabulate(self):
+        """Build and run the upstream create-and-tabulate demo."""
         cmake = self.spec["cmake"].command
-        source = self.test_suite.current_test_data_dir
+        source = join_path(
+            self.test_suite.current_test_cache_dir, "demo", "cpp", "demo_create_and_tabulate"
+        )
         prefixes = ";".join(str(dep.prefix) for dep in self.spec.traverse(deptype=("link", "run")))
         cmake(
             "-S",
             source,
             "-B",
-            "smoke-build",
+            "demo-build",
             "-G",
             "Ninja",
             "-DCMAKE_BUILD_TYPE=Developer",
             f"-DCMAKE_CXX_COMPILER={self.spec['cxx'].package.cxx}",
             f"-DCMAKE_PREFIX_PATH={prefixes}",
         )
-        cmake("--build", "smoke-build")
+        cmake("--build", "demo-build")
         suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
-        executable = join_path("smoke-build", "smoke" + suffix)
+        executable = join_path("demo-build", "demo_create_and_tabulate" + suffix)
         Executable(executable)()

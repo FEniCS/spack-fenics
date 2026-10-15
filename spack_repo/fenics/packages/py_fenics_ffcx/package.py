@@ -86,6 +86,11 @@ class PyFenicsFfcx(PythonPackage):
         with working_dir(join_path(self.stage.source_path, "test")):
             python("-m", "pytest", "-v", "--import-mode=append", ".")
 
-    def test_code_generation(self):
-        """Check installed ffcx functionality without the build tree."""
-        self.spec["python"].command(join_path(self.test_suite.current_test_data_dir, "smoke.py"))
+    @run_after("install")
+    def cache_test_sources(self):
+        cache_extra_test_sources(self, "demo/Poisson1D.py")
+
+    def test_poisson(self):
+        """Compile the upstream one-dimensional Poisson form."""
+        demo = join_path(self.test_suite.current_test_cache_dir, "demo", "Poisson1D.py")
+        self.spec["python"].command("-m", "ffcx", demo)

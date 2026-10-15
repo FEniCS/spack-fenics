@@ -70,7 +70,7 @@ class FenicsDolfinx(CMakePackage):
     depends_on("cmake@3.26:", when="@0.11:", type=("build", "test"))
     depends_on("cmake@3.21:", when="@0.9:", type=("build", "test"))
     depends_on("cmake@3.19:", when="@:0.8", type=("build", "test"))
-    depends_on("pkgconfig", type="build")
+    depends_on("pkgconfig", type=("build", "test"))
     depends_on("mpi")
     # HDF5Interface.cpp #if H5_VERSION_GE are not precise enough.
     depends_on("hdf5+mpi@1.12:")
@@ -150,18 +150,24 @@ class FenicsDolfinx(CMakePackage):
         # Tests at different MPI sizes share output filenames.
         ctest("--test-dir", test_dir, "--output-on-failure", "--parallel", "1")
 
+    @run_after("install")
+    def cache_test_sources(self):
+        demo = "poisson" if "+petsc" in self.spec else "interpolation-io"
+        cache_extra_test_sources(self, join_path("cpp", "demo", demo))
+
     test_requires_compiler = True
 
-    def test_link(self):
-        """Compile and run a small client against the installed library."""
+    def test_demo(self):
+        """Build and run an upstream demo against the installed library."""
         cmake = self.spec["cmake"].command
-        source = self.test_suite.current_test_data_dir
+        demo = "poisson" if "+petsc" in self.spec else "interpolation-io"
+        source = join_path(self.test_suite.current_test_cache_dir, "cpp", "demo", demo)
         prefixes = ";".join(str(dep.prefix) for dep in self.spec.traverse(deptype=("link", "run")))
         cmake(
             "-S",
             source,
             "-B",
-            "smoke-build",
+            "demo-build",
             "-G",
             "Ninja",
             "-DCMAKE_BUILD_TYPE=Developer",
@@ -169,7 +175,7 @@ class FenicsDolfinx(CMakePackage):
             f"-DCMAKE_CXX_COMPILER={self.spec['cxx'].package.cxx}",
             f"-DCMAKE_PREFIX_PATH={prefixes}",
         )
-        cmake("--build", "smoke-build")
+        cmake("--build", "demo-build")
         suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
-        executable = join_path("smoke-build", "smoke" + suffix)
+        executable = join_path("demo-build", "demo_" + demo + suffix)
         Executable(executable)()

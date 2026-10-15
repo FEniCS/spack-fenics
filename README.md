@@ -110,18 +110,20 @@ steps retain their release-specific exclusions and MPI runs.
 
 The two kinds of recipe tests have different scopes:
 
-| Package | Install-time tests (`--test=root`) | Standalone smoke tests (`spack test run`) |
+| Package | Install-time tests (`--test=root`) | Standalone demos (`spack test run`) |
 | --- | --- | --- |
-| C++ Basix | Upstream CMake installation check | Compile/link a client and create an element |
-| C++ DOLFINx | C++ unit suite through CTest | Compile/link a client and check an MPI index map |
-| Python Basix | Upstream pytest suite | Tabulate a linear element at its vertices |
-| Python DOLFINx | Upstream Python unit suite | Create a mesh and interpolate a linear function |
-| Python FFCx | Upstream pytest suite | Generate C and header files for a Poisson form |
-| Python UFL | Upstream pytest suite | Differentiate and evaluate a scalar expression |
+| C++ Basix | Upstream CMake installation check | Build and run the create-and-tabulate demo |
+| C++ DOLFINx | C++ unit suite through CTest | Build and run the Poisson demo with PETSc, or interpolation/IO demo without PETSc |
+| Python Basix | Upstream pytest suite | Run the create-and-tabulate demo |
+| Python DOLFINx | Upstream Python unit suite | Run the matrix-free Poisson demo |
+| Python FFCx | Upstream pytest suite | Compile the one-dimensional Poisson demo |
+| Python UFL | Upstream pytest suite | Run the Poisson form example |
 
-Standalone tests use small inputs shipped with the recipes, require no
-original source/build directory, and should finish within a few minutes.
-They also inherit Python import checks. They do not invoke the full suites.
+Standalone tests reuse files from the matching upstream release. The recipes
+save these files during installation with `cache_extra_test_sources`, so tests
+run against installed packages without the original source/build directory.
+No custom smoke-test programs are maintained in this repository. Python
+packages also inherit Spack's import checks.
 
 Call the `publish-buildcache` action after the job's tests, passing
 `env-path` and `if: always()` so a failed or cancelled job still caches what

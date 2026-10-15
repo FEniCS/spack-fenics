@@ -108,6 +108,20 @@ class PyFenicsUfl(PythonPackage):
         with working_dir(join_path(self.stage.source_path, "test")):
             python("-m", "pytest", "-v", "--import-mode=append", ".")
 
-    def test_differentiation(self):
-        """Check installed ufl functionality without the build tree."""
-        self.spec["python"].command(join_path(self.test_suite.current_test_data_dir, "smoke.py"))
+    @run_after("install")
+    def cache_test_sources(self):
+        sources = ["demo/Poisson.py"]
+        if os.path.isfile(join_path(self.stage.source_path, "test", "utils.py")):
+            sources.append("test/utils.py")
+        cache_extra_test_sources(self, sources)
+
+    def test_poisson(self):
+        """Run the upstream Poisson form example."""
+        cache = self.test_suite.current_test_cache_dir
+        python = self.spec["python"].command
+        # Recent upstream demos use the element definitions in test/utils.py.
+        python.add_default_env(
+            "PYTHONPATH",
+            os.pathsep.join([join_path(cache, "test"), os.environ.get("PYTHONPATH", "")]),
+        )
+        python(join_path(cache, "demo", "Poisson.py"))
