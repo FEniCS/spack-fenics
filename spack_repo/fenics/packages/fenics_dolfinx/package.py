@@ -117,6 +117,12 @@ class FenicsDolfinx(CMakePackage):
             self.define("DOLFINX_ENABLE_SUPERLU_DIST", "superlu-dist" in self.spec),
         ]
 
+    def setup_build_environment(self, env):
+        # Spack clears *_ROOT variables; preserve explicit MPI container opt-ins.
+        for name in ("OMPI_ALLOW_RUN_AS_ROOT", "PRTE_ALLOW_RUN_AS_ROOT"):
+            if name in os.environ:
+                env.set(name, os.environ[name])
+
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_build(self):

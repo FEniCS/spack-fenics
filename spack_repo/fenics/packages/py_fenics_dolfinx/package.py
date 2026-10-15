@@ -137,6 +137,10 @@ class PyFenicsDolfinx(PythonPackage):
     import_modules = ("dolfinx",)
 
     def setup_build_environment(self, env):
+        # Spack clears *_ROOT variables; preserve explicit MPI container opt-ins.
+        for name in ("OMPI_ALLOW_RUN_AS_ROOT", "PRTE_ALLOW_RUN_AS_ROOT"):
+            if name in os.environ:
+                env.set(name, os.environ[name])
         python_pkg = self.spec["python"].package
         for directory in {python_pkg.platlib, python_pkg.purelib}:
             env.prepend_path("PYTHONPATH", join_path(self.prefix, directory))
