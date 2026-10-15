@@ -70,7 +70,8 @@ class FenicsDolfinx(CMakePackage):
     depends_on("cmake@3.26:", when="@0.11:", type=("build", "test"))
     depends_on("cmake@3.21:", when="@0.9:", type=("build", "test"))
     depends_on("cmake@3.19:", when="@:0.8", type=("build", "test"))
-    depends_on("pkgconfig", type=("build", "test"))
+    # Spack 1.2.2 fails to solve this virtual with both build and test types.
+    depends_on("pkgconfig", type="build")
     depends_on("mpi")
     # HDF5Interface.cpp #if H5_VERSION_GE are not precise enough.
     depends_on("hdf5+mpi@1.12:")
@@ -174,6 +175,7 @@ class FenicsDolfinx(CMakePackage):
             f"-DCMAKE_C_COMPILER={self.spec['c'].package.cc}",
             f"-DCMAKE_CXX_COMPILER={self.spec['cxx'].package.cxx}",
             f"-DCMAKE_PREFIX_PATH={prefixes}",
+            f"-DPKG_CONFIG_EXECUTABLE={self.spec['pkgconfig'].command.path}",
         )
         cmake("--build", "demo-build")
         suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
