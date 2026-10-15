@@ -131,19 +131,10 @@ class FenicsDolfinx(CMakePackage):
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
         args.extend(getattr(self, "cmake_flag_args", []))
-        # GNUInstallDirs puts CMAKE_INSTALL_LIBDIR at lib64 on some distributions.
-        libdir = next(
-            (
-                d
-                for d in (self.prefix.lib, self.prefix.lib64)
-                if os.path.isdir(join_path(d, "cmake", "dolfinx"))
-            ),
-            self.prefix.lib,
-        )
         args.extend(
             [
                 self.define("CMAKE_BUILD_TYPE", "Developer"),
-                self.define("DOLFINX_DIR", join_path(libdir, "cmake", "dolfinx")),
+                self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
             ]
         )
         cmake("-S", join_path(self.stage.source_path, "cpp", "test"), "-B", test_dir, *args)
