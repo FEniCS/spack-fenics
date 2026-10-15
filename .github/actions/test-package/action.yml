@@ -4,6 +4,12 @@ inputs:
   spec:
     description: 'Spack spec syntax'
     required: true
+  test-root:
+    description: 'Run root install-time tests from source, with cached dependencies allowed.'
+    default: 'false'
+  test-dependencies:
+    description: 'Concretize and install root test dependencies, including for cached roots.'
+    default: 'false'
   env-path:
     description: >-
       Directory for the Spack environment. Left in place for the rest of the
@@ -21,6 +27,9 @@ outputs:
   env-path:
     description: 'Directory of the Spack environment holding the built spec.'
     value: ${{ inputs.env-path }}
+  root-hash:
+    description: 'Hash of the first concretized root, for staging the tested package.'
+    value: ${{ steps.roots.outputs.hash }}
 runs:
   using: "composite"
   steps:
@@ -52,8 +61,8 @@ runs:
       uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
         spack_ref: v1.2.2
-        # spack/spack-packages @ 2026-08-17
-        packages_ref: 1ccf95574922e2a7f7ef0351bd67758ad4634b7a
+        # spack/spack-packages @ 2026-10-14
+        packages_ref: 09a7cc27b5d54c9f286cf645a11ae7d95bf38717
 
     # Job-wide, not step-local: mirrors.yaml stores these names, and spack
     # re-resolves them in every later install step. Not GITHUB_*, which
@@ -120,22 +129,45 @@ runs:
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
+        TEST_ROOT: ${{ inputs.test-root }}
+        TEST_DEPENDENCIES: ${{ inputs.test-dependencies }}
       run: |
         spack -e "$ENV_DIR" config add concretizer:unify:true
         # Keep the buildcache out of the solve: with reuse on, hashes depend
-        # on what the mirror happens to hold, and 66 jobs are pushing to it.
+        # on what the mirror happens to hold, and concurrent jobs push to it.
         # Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
-        spack -e "$ENV_DIR" concretize --deprecated -j $(nproc)
+        args=(--deprecated -j "$(nproc)")
+        if [ "$TEST_ROOT" = true ] || [ "$TEST_DEPENDENCIES" = true ]; then
+          args+=(--test=root)
+        fi
+        spack -e "$ENV_DIR" concretize "${args[@]}"
+
+    - name: Record root hash
+      id: roots
+      shell: spack-bash {0}
+      env:
+        ENV_DIR: ${{ inputs.env-path }}
+      run: |
+        root_hash=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; print(ev.active_environment().concrete_roots()[0].dag_hash())')
+        echo "hash=$root_hash" >> "$GITHUB_OUTPUT"
 
     - name: Install
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-      run: >
-        spack -e "$ENV_DIR" install --deprecated -j $(nproc)
-        --log-format junit
-        --log-file log.xml
+        TEST_ROOT: ${{ inputs.test-root }}
+        TEST_DEPENDENCIES: ${{ inputs.test-dependencies }}
+      run: |
+        args=(--deprecated -j "$(nproc)" --log-format junit --log-file log.xml)
+        # Explicitly install test dependencies even when the root is cached.
+        if [ "$TEST_ROOT" = true ] || [ "$TEST_DEPENDENCIES" = true ]; then
+          spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" --test=root --only dependencies --include-build-deps
+        fi
+        if [ "$TEST_ROOT" = true ]; then
+          args+=(--test=root --use-buildcache=package:never,dependencies:auto)
+        fi
+        spack -e "$ENV_DIR" install "${args[@]}"
 
     # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
     # so the push would 401 on a step that tests nothing. Reads are
@@ -163,8 +195,12 @@ runs:
       shell: bash
       env:
         SPEC: ${{ inputs.spec }}
+        TEST_ROOT: ${{ inputs.test-root }}
       run: |
         slug=$(printf '%s' "$SPEC" | tr -cs 'A-Za-z0-9.@+' '-' | sed 's/^-//; s/-$//')
+        if [ "$TEST_ROOT" = true ]; then
+          slug="$slug-test-root"
+        fi
         echo "name=$slug" >> "$GITHUB_OUTPUT"
 
     - name: Upload log
@@ -172,5 +208,8 @@ runs:
       uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.log.outputs.name }}-log
-        path: log.xml
+        path: |
+          log.xml
+          ${{ inputs.env-path }}/spack.yaml
+          ${{ inputs.env-path }}/spack.lock
         retention-days: 7
