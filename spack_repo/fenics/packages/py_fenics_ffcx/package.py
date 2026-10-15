@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.python import PythonPackage
 
 from spack.package import *
@@ -52,11 +54,43 @@ class PyFenicsFfcx(PythonPackage):
     depends_on("py-fenics-basix@0.8", type=("build", "run"), when="@0.8")
 
     depends_on("py-pytest@6:", type="test")
+    depends_on("py-pytest-xdist", type="test")
     depends_on("py-sympy", type="test")
+    depends_on("py-numba", type="test")
+
+    import_modules = ("ffcx",)
+
+    def setup_build_environment(self, env):
+        python_pkg = self.spec["python"].package
+        for directory in {python_pkg.platlib, python_pkg.purelib}:
+            env.prepend_path("PYTHONPATH", join_path(self.prefix, directory))
 
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_build(self):
-        with working_dir("test"):
-            pytest = which("pytest", required=True)
-            pytest("--ignore=test_cmdline.py")
+        python_pkg = self.spec["python"].package
+        python = self.spec["python"].command
+        python.add_default_env(
+            "PYTHONPATH",
+            os.pathsep.join(
+                [
+                    join_path(self.prefix, python_pkg.platlib),
+                    join_path(self.prefix, python_pkg.purelib),
+                    os.environ.get("PYTHONPATH", ""),
+                ]
+            ),
+        )
+        python.add_default_env(
+            "PATH", os.pathsep.join([join_path(self.prefix, "bin"), os.environ["PATH"]])
+        )
+        with working_dir(join_path(self.stage.source_path, "test")):
+            python("-m", "pytest", "-v", "--import-mode=append", ".")
+
+    @run_after("install")
+    def cache_test_sources(self):
+        cache_extra_test_sources(self, "demo/Poisson1D.py")
+
+    def test_poisson(self):
+        """Compile the upstream one-dimensional Poisson form."""
+        demo = join_path(self.test_suite.current_test_cache_dir, "demo", "Poisson1D.py")
+        self.spec["python"].command("-m", "ffcx", demo)
