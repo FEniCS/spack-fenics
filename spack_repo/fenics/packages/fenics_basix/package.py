@@ -2,7 +2,9 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack_repo.builtin.build_systems.cmake import CMakePackage
+import os
+
+from spack_repo.builtin.build_systems.cmake import CMakeBuilder, CMakePackage
 
 from spack.package import *
 
@@ -35,16 +37,21 @@ class FenicsBasix(CMakePackage):
     )
 
     depends_on("cxx", type="build")
+    # test/test_cmake enables C as well as C++.
+    depends_on("c", type="build")
 
-    depends_on("cmake@3.21:", when="@0.9:", type="build")
-    depends_on("cmake@3.19:", when="@:0.8", type="build")
+    depends_on("cmake@3.21:", when="@0.9:", type=("build", "test"))
+    depends_on("cmake@3.19:", when="@:0.8", type=("build", "test"))
     depends_on("blas")
     depends_on("lapack")
 
     conflicts("%gcc@:9.10", msg="fenics-basix requires GCC-10 or newer for C++20 support")
     conflicts("%clang@:9.10", msg="fenics-basix requires Clang-10 or newer for C++20 support")
 
+    depends_on("ninja", type="test")
+
     root_cmakelists_dir = "cpp"
+    build_time_test_callbacks = ()
 
     # Required for compatibility of Cray HPE systems
     def cmake_args(self):
@@ -52,3 +59,62 @@ class FenicsBasix(CMakePackage):
             "-DBLAS_LIBRARIES=" + self.spec["blas"].libs.joined(";"),
             "-DLAPACK_LIBRARIES=" + self.spec["lapack"].libs.joined(";"),
         ]
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_build(self):
+        test_dir = join_path(self.stage.path, "spack-test-build")
+        generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
+        args = CMakeBuilder.std_args(self, generator=generator)
+        args.extend(getattr(self, "cmake_flag_args", []))
+        # GNUInstallDirs puts CMAKE_INSTALL_LIBDIR at lib64 on some distributions.
+        libdir = next(
+            (
+                d
+                for d in (self.prefix.lib, self.prefix.lib64)
+                if os.path.isdir(join_path(d, "cmake", "basix"))
+            ),
+            self.prefix.lib,
+        )
+        args.extend(
+            [
+                self.define("CMAKE_BUILD_TYPE", "Developer"),
+                self.define("Basix_DIR", join_path(libdir, "cmake", "basix")),
+            ]
+        )
+        cmake("-S", join_path(self.stage.source_path, "test", "test_cmake"), "-B", test_dir, *args)
+        cmake("--build", test_dir, "--parallel", str(make_jobs))
+        executable = "a.out.exe" if self.spec.satisfies("platform=windows") else "a.out"
+        Executable(join_path(test_dir, executable))()
+
+    @run_after("install")
+    def cache_test_sources(self):
+        sources = ["demo/cpp/demo_create_and_tabulate"]
+        if os.path.isdir(join_path(self.stage.source_path, "cmake")):
+            sources.append("cmake")
+        cache_extra_test_sources(self, sources)
+
+    test_requires_compiler = True
+
+    def test_create_and_tabulate(self):
+        """Build and run the upstream create-and-tabulate demo."""
+        cmake = self.spec["cmake"].command
+        source = join_path(
+            self.test_suite.current_test_cache_dir, "demo", "cpp", "demo_create_and_tabulate"
+        )
+        prefixes = ";".join(str(dep.prefix) for dep in self.spec.traverse(deptype=("link", "run")))
+        cmake(
+            "-S",
+            source,
+            "-B",
+            "demo-build",
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Developer",
+            f"-DCMAKE_CXX_COMPILER={self.spec['cxx'].package.cxx}",
+            f"-DCMAKE_PREFIX_PATH={prefixes}",
+        )
+        cmake("--build", "demo-build")
+        suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
+        executable = join_path("demo-build", "demo_create_and_tabulate" + suffix)
+        Executable(executable)()
