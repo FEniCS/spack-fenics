@@ -21,9 +21,6 @@ inputs:
       as GHCR_TOKEN, since later install steps re-read the mirror.
     required: true
 outputs:
-  test-mode:
-    description: 'Testing mode selected for this installation.'
-    value: ${{ inputs.test-mode }}
   env-path:
     description: 'Directory of the Spack environment holding the built spec.'
     value: ${{ inputs.env-path }}

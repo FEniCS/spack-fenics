@@ -101,8 +101,7 @@ Set `test-mode: dependencies` to concretize and install root test dependencies
 while allowing a cached root. Use `test-mode: root` to additionally build the
 root from source and run its install-time test hooks with
 `spack install --test=root`. Dependencies may still come from the build cache.
-The default mode, `none`, performs a normal installation. The action exports
-its selected `test-mode` so callers can avoid duplicate test runs.
+The default mode, `none`, performs a normal installation.
 
 ## Developer notes
 
