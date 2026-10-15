@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.cmake import CMakeBuilder, CMakePackage
 
 from spack.package import *
@@ -63,10 +65,19 @@ class FenicsBasix(CMakePackage):
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
         args.extend(getattr(self, "cmake_flag_args", []))
+        # GNUInstallDirs puts CMAKE_INSTALL_LIBDIR at lib64 on some distributions.
+        libdir = next(
+            (
+                d
+                for d in (self.prefix.lib, self.prefix.lib64)
+                if os.path.isdir(join_path(d, "cmake", "basix"))
+            ),
+            self.prefix.lib,
+        )
         args.extend(
             [
                 self.define("CMAKE_BUILD_TYPE", "Developer"),
-                self.define("Basix_DIR", join_path(self.prefix, "lib", "cmake", "basix")),
+                self.define("Basix_DIR", join_path(libdir, "cmake", "basix")),
             ]
         )
         cmake("-S", join_path(self.stage.source_path, "test", "test_cmake"), "-B", test_dir, *args)
