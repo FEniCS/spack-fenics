@@ -98,7 +98,8 @@ class FenicsDolfinx(CMakePackage):
         depends_on(f"py-fenics-ffcx@{ver}", when=f"@{ver}", type="test")
     depends_on("catch2@3:", type="test")
 
-    depends_on("ninja", type="test")
+    depends_on("ninja", when="generator=ninja", type="test")
+    depends_on("gmake", when="generator=make", type="test")
 
     root_cmakelists_dir = "cpp"
 
@@ -126,7 +127,7 @@ class FenicsDolfinx(CMakePackage):
 
     @run_after("install")
     @on_package_attributes(run_tests=True)
-    def check_build(self):
+    def check_install(self):
         test_dir = join_path(self.stage.path, "spack-test-build")
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
@@ -159,21 +160,23 @@ class FenicsDolfinx(CMakePackage):
         cmake = self.spec["cmake"].command
         demo = "poisson" if "+petsc" in self.spec else "interpolation-io"
         source = join_path(self.test_suite.current_test_cache_dir, "cpp", "demo", demo)
-        prefixes = ";".join(str(dep.prefix) for dep in self.spec.traverse(deptype=("link", "run")))
-        cmake(
-            "-S",
-            source,
-            "-B",
-            "demo-build",
-            "-G",
-            "Ninja",
-            "-DCMAKE_BUILD_TYPE=Developer",
-            f"-DCMAKE_C_COMPILER={self.spec['c'].package.cc}",
-            f"-DCMAKE_CXX_COMPILER={self.spec['cxx'].package.cxx}",
-            f"-DCMAKE_PREFIX_PATH={prefixes}",
-            f"-DPKG_CONFIG_EXECUTABLE={self.spec['pkgconfig'].command.path}",
+        generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
+        args = CMakeBuilder.std_args(self, generator=generator)
+        args.extend(getattr(self, "cmake_flag_args", []))
+        args.extend(
+            [
+                self.define("CMAKE_BUILD_TYPE", "Developer"),
+                self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
+            ]
         )
-        cmake("--build", "demo-build")
+        # Spack 1.2.2 can omit compiler environment variables in test context.
+        if not os.environ.get("CC"):
+            args.append(self.define("CMAKE_C_COMPILER", self.spec["c"].package.cc))
+        if not os.environ.get("CXX"):
+            args.append(self.define("CMAKE_CXX_COMPILER", self.spec["cxx"].package.cxx))
+        args.append(self.define("PKG_CONFIG_EXECUTABLE", self.spec["pkgconfig"].command.path))
+        cmake("-S", source, "-B", "demo-build", *args)
+        cmake("--build", "demo-build", "--parallel", str(make_jobs))
         suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
         executable = join_path("demo-build", "demo_" + demo + suffix)
         Executable(executable)()
