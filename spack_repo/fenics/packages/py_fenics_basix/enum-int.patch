@@ -6,7 +6,7 @@ diff --git a/python/basix/utils.py b/python/basix/utils.py
      def __int__(self) -> int:
          """Convert to int."""
 -        return int(self.value)
-+        return self.value.value
++        return int(getattr(self.value, "value", self.value))
  
  
  def index(p: int, q: typing.Optional[int] = None, r: typing.Optional[int] = None) -> int:
