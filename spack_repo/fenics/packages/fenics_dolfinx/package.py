@@ -48,8 +48,8 @@ class FenicsDolfinx(CMakePackage):
         multi=True,
     )
 
-    depends_on("c", type="build")  # HDF5 dependency requires C in CMake config
-    depends_on("cxx", type="build")
+    depends_on("c", type=("build", "test"))  # HDF5 dependency requires C in CMake config
+    depends_on("cxx", type=("build", "test"))
 
     conflicts("%gcc@:12", when="@0.10:")
 
@@ -67,9 +67,9 @@ class FenicsDolfinx(CMakePackage):
 
     conflicts("~petsc", when="+slepc", msg="+slepc requires +petsc")
 
-    depends_on("cmake@3.26:", when="@0.11:", type="build")
-    depends_on("cmake@3.21:", when="@0.9:", type="build")
-    depends_on("cmake@3.19:", when="@:0.8", type="build")
+    depends_on("cmake@3.26:", when="@0.11:", type=("build", "test"))
+    depends_on("cmake@3.21:", when="@0.9:", type=("build", "test"))
+    depends_on("cmake@3.19:", when="@:0.8", type=("build", "test"))
     depends_on("pkgconfig", type="build")
     depends_on("mpi")
     # HDF5Interface.cpp #if H5_VERSION_GE are not precise enough.
@@ -96,6 +96,8 @@ class FenicsDolfinx(CMakePackage):
         depends_on(f"fenics-basix@{ver}", when=f"@{ver}")
         depends_on(f"py-fenics-ffcx@{ver}", when=f"@{ver}", type="test")
     depends_on("catch2@3:", type="test")
+
+    depends_on("ninja", type="test")
 
     root_cmakelists_dir = "cpp"
 
@@ -141,3 +143,25 @@ class FenicsDolfinx(CMakePackage):
         cmake("--build", test_dir, "--parallel", str(make_jobs))
         # Tests at different MPI sizes share output filenames.
         ctest("--test-dir", test_dir, "--output-on-failure", "--parallel", "1")
+
+    test_requires_compiler = True
+
+    def test_link(self):
+        """Compile and run a small client against the installed library."""
+        cmake = self.spec["cmake"].command
+        source = self.test_suite.current_test_data_dir
+        prefixes = ";".join(str(dep.prefix) for dep in self.spec.traverse(deptype=("link", "run")))
+        cmake(
+            "-S",
+            source,
+            "-B",
+            "smoke-build",
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Developer",
+            f"-DCMAKE_PREFIX_PATH={prefixes}",
+        )
+        cmake("--build", "smoke-build")
+        suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
+        executable = join_path("smoke-build", "smoke" + suffix)
+        Executable(executable)()

@@ -36,17 +36,19 @@ class FenicsBasix(CMakePackage):
         values=("Debug", "Release", "RelWithDebInfo", "MinSizeRel", "Developer"),
     )
 
-    depends_on("cxx", type="build")
+    depends_on("cxx", type=("build", "test"))
     # test/test_cmake enables C as well as C++.
-    depends_on("c", type="build")
+    depends_on("c", type=("build", "test"))
 
-    depends_on("cmake@3.21:", when="@0.9:", type="build")
-    depends_on("cmake@3.19:", when="@:0.8", type="build")
+    depends_on("cmake@3.21:", when="@0.9:", type=("build", "test"))
+    depends_on("cmake@3.19:", when="@:0.8", type=("build", "test"))
     depends_on("blas")
     depends_on("lapack")
 
     conflicts("%gcc@:9.10", msg="fenics-basix requires GCC-10 or newer for C++20 support")
     conflicts("%clang@:9.10", msg="fenics-basix requires Clang-10 or newer for C++20 support")
+
+    depends_on("ninja", type="test")
 
     root_cmakelists_dir = "cpp"
     build_time_test_callbacks = ()
@@ -84,3 +86,25 @@ class FenicsBasix(CMakePackage):
         cmake("--build", test_dir, "--parallel", str(make_jobs))
         executable = "a.out.exe" if self.spec.satisfies("platform=windows") else "a.out"
         Executable(join_path(test_dir, executable))()
+
+    test_requires_compiler = True
+
+    def test_link(self):
+        """Compile and run a small client against the installed library."""
+        cmake = self.spec["cmake"].command
+        source = self.test_suite.current_test_data_dir
+        prefixes = ";".join(str(dep.prefix) for dep in self.spec.traverse(deptype=("link", "run")))
+        cmake(
+            "-S",
+            source,
+            "-B",
+            "smoke-build",
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Developer",
+            f"-DCMAKE_PREFIX_PATH={prefixes}",
+        )
+        cmake("--build", "smoke-build")
+        suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
+        executable = join_path("smoke-build", "smoke" + suffix)
+        Executable(executable)()

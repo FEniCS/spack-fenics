@@ -97,9 +97,31 @@ in the input spec list, and use `spack stage "/$ROOT_HASH"` to fetch its
 concretized source for manual tests. Each build uploads `log.xml`,
 `spack.yaml` and `spack.lock` for diagnosis and reproduction.
 
-Set `test-root: 'true'` to concretize test dependencies and run
-`spack install --test=root`. Root packages build from source so their test
-hooks execute; dependencies may come from the build cache.
+Set `test-dependencies: 'true'` to concretize and install root test
+dependencies while allowing the root to come from the binary cache. Set
+`test-root: 'true'` to additionally build the root from source and run its
+install-time test hooks with `spack install --test=root`. Dependencies may
+still come from the build cache.
+
+The existing package matrices run `spack test run` against the exact installed
+root hash, including cached installations. Selected `main` rows also enable
+`test-root` to exercise install-time hooks. The existing project regression
+steps retain their release-specific exclusions and MPI runs.
+
+The two kinds of recipe tests have different scopes:
+
+| Package | Install-time tests (`--test=root`) | Standalone smoke tests (`spack test run`) |
+| --- | --- | --- |
+| C++ Basix | Upstream CMake installation check | Compile/link a client and create an element |
+| C++ DOLFINx | C++ unit suite through CTest | Compile/link a client and check an MPI index map |
+| Python Basix | Upstream pytest suite | Tabulate a linear element at its vertices |
+| Python DOLFINx | Upstream Python unit suite | Create a mesh and interpolate a linear function |
+| Python FFCx | Upstream pytest suite | Generate C and header files for a Poisson form |
+| Python UFL | Upstream pytest suite | Differentiate and evaluate a scalar expression |
+
+Standalone tests use small inputs shipped with the recipes, require no
+original source/build directory, and should finish within a few minutes.
+They also inherit Python import checks. They do not invoke the full suites.
 
 Call the `publish-buildcache` action after the job's tests, passing
 `env-path` and `if: always()` so a failed or cancelled job still caches what

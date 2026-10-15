@@ -106,3 +106,7 @@ class PyFenicsUfl(PythonPackage):
         )
         with working_dir(join_path(self.stage.source_path, "test")):
             python("-m", "pytest", "-v", "--import-mode=append", ".")
+
+    def test_differentiation(self):
+        """Check installed ufl functionality without the build tree."""
+        self.spec["python"].command(join_path(self.test_suite.current_test_data_dir, "smoke.py"))

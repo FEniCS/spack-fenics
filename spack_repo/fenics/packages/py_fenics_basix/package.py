@@ -112,3 +112,7 @@ class PyFenicsBasix(PythonPackage):
         )
         with working_dir(self.stage.source_path):
             python("-m", "pytest", "-v", "--import-mode=importlib", "test")
+
+    def test_tabulation(self):
+        """Check installed basix functionality without the build tree."""
+        self.spec["python"].command(join_path(self.test_suite.current_test_data_dir, "smoke.py"))

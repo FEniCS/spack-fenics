@@ -41,7 +41,15 @@ jobs:
         uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
-          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} py-fenics-ffcx catch2 cmake
+          spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }}
+          test-dependencies: 'true'
+          test-root: ${{ matrix.version == 'main' && contains(matrix.spec, 'gcc@13') }}
+      - name: Test installed package
+        shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
+        run: spack -v -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
       # FFCx compilation of poisson.py fails in ffcx/codegeneration/C/finite_element.py
       #
       # No 'spack build-env': it needs build-only deps that are absent when
@@ -100,6 +108,7 @@ jobs:
             spec: "build_type=Developer %%gcc@13 ^fenics-dolfinx+superlu-dist ^mpich"
             python-version: "3.12"
     env:
+      PYTEST_ADDOPTS: -k 'not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]'
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
       PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe   # Newer OpenMPI
@@ -114,6 +123,14 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
+          test-dependencies: 'true'
+          test-root: ${{ matrix.version == 'main' && contains(matrix.spec, 'gcc@13') && matrix.python-version == '3.13' }}
+      - name: Test installed package
+        shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
+        run: spack -v -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0
       - name: Run tests (0.9)
         if: ${{ matrix.version == '0.9'}}

@@ -166,3 +166,7 @@ class PyFenicsDolfinx(PythonPackage):
         )
         with working_dir(self.stage.source_path):
             python(*args)
+
+    def test_interpolation(self):
+        """Check installed dolfinx functionality without the build tree."""
+        self.spec["python"].command(join_path(self.test_suite.current_test_data_dir, "smoke.py"))

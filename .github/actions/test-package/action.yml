@@ -5,7 +5,10 @@ inputs:
     description: 'Spack spec syntax'
     required: true
   test-root:
-    description: 'Include root test dependencies and run root recipe hooks from source.'
+    description: 'Run root install-time tests from source, with cached dependencies allowed.'
+    default: 'false'
+  test-dependencies:
+    description: 'Concretize and install root test dependencies, including for cached roots.'
     default: 'false'
   env-path:
     description: >-
@@ -127,6 +130,7 @@ runs:
       env:
         ENV_DIR: ${{ inputs.env-path }}
         TEST_ROOT: ${{ inputs.test-root }}
+        TEST_DEPENDENCIES: ${{ inputs.test-dependencies }}
       run: |
         spack -e "$ENV_DIR" config add concretizer:unify:true
         # Keep the buildcache out of the solve: with reuse on, hashes depend
@@ -134,7 +138,7 @@ runs:
         # Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
         args=(--deprecated -j "$(nproc)")
-        if [ "$TEST_ROOT" = true ]; then
+        if [ "$TEST_ROOT" = true ] || [ "$TEST_DEPENDENCIES" = true ]; then
           args+=(--test=root)
         fi
         spack -e "$ENV_DIR" concretize "${args[@]}"
@@ -153,10 +157,14 @@ runs:
       env:
         ENV_DIR: ${{ inputs.env-path }}
         TEST_ROOT: ${{ inputs.test-root }}
+        TEST_DEPENDENCIES: ${{ inputs.test-dependencies }}
       run: |
         args=(--deprecated -j "$(nproc)" --log-format junit --log-file log.xml)
+        # Explicitly install test dependencies even when the root is cached.
+        if [ "$TEST_ROOT" = true ] || [ "$TEST_DEPENDENCIES" = true ]; then
+          spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" --test=root --only dependencies
+        fi
         if [ "$TEST_ROOT" = true ]; then
-          # Cached roots do not execute post-install test hooks.
           args+=(--test=root --use-buildcache=package:never,dependencies:auto)
         fi
         spack -e "$ENV_DIR" install "${args[@]}"
