@@ -26,6 +26,10 @@ jobs:
       matrix:
         version: ["main", "2025.2", "2025.1", "2024.2", "2024.1"]
 
+    env:
+      # Python 3.14 changed reference counting; match the regression step.
+      PYTEST_ADDOPTS: -k 'not test_strip_form_arguments_strips_data_refs'
+
     steps:
       - uses: actions/checkout@v7
         with:
@@ -35,12 +39,27 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-ufl@${{ matrix.version }}
+          test-dependencies: 'true'
+          test-root: ${{ matrix.version == 'main' }}
+      - name: Test installed package
+        shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
+        run: spack -v -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
       # NOTE: Reference counting changed in Python 3.14, leading to test failure.
       - name: Run tests
         shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
-          spack install --add py-pytest py-pytest-xdist
-          spack stage py-fenics-ufl@${{ matrix.version }}
-          spack cd py-fenics-ufl@${{ matrix.version }}
-          python -m pytest -n auto -k "not test_strip_form_arguments_strips_data_refs" test/
+          spack env activate "$ENV_DIR"
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto -k "not test_strip_form_arguments_strips_data_refs" test/
+      - name: Publish build cache
+        if: always()
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}

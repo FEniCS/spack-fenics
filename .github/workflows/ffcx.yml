@@ -36,6 +36,11 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-ufcx@${{ matrix.version }} %gcc@13
+      - name: Publish build cache
+        if: always()
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}
 
   py-fenics-ffcx:
     runs-on: ubuntu-24.04
@@ -58,14 +63,30 @@ jobs:
         uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
-          spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@13 py-numba
+          spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@13
+          test-dependencies: 'true'
+          test-root: ${{ matrix.version == 'main' }}
+      - name: Test installed package
+        shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
+        run: spack -v -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
       # NOTE: ffcx version 0.8 currently broken
       - name: Run tests
         if: ${{ matrix.version != '0.8' }}
         shell: spack-bash {0}
+        env:
+          ENV_DIR: ${{ steps.spack.outputs.env-path }}
+          ROOT_HASH: ${{ steps.spack.outputs.root-hash }}
         run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
-          spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-ffcx@${{ matrix.version }}
-          spack cd py-fenics-ffcx@${{ matrix.version }}
-          python -m pytest -n auto test/
+          spack env activate "$ENV_DIR"
+          spack stage "/$ROOT_HASH"
+          spack cd "/$ROOT_HASH"
+          # Numba tests generate the same module; keep each file on one worker.
+          spack build-env "/$ROOT_HASH" -- python -m pytest -n auto --dist loadfile test/
+      - name: Publish build cache
+        if: always()
+        uses: ./spack-fenics/.github/actions/publish-buildcache
+        with:
+          env-path: ${{ steps.spack.outputs.env-path }}

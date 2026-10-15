@@ -163,24 +163,6 @@ runs:
         esac
         spack -e "$ENV_DIR" install "${args[@]}"
 
-    # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
-    # so the push would 401 on a step that tests nothing. Reads are
-    # anonymous, so they still take from the cache.
-    - name: Push packages to cache
-      if: >-
-        ${{ !cancelled() && (github.event_name != 'pull_request'
-        || github.event.pull_request.head.repo.full_name == github.repository) }}
-      shell: spack-bash {0}
-      env:
-        ENV_DIR: ${{ inputs.env-path }}
-      # No --update-index: it re-reads all ~3600 manifests and writes a
-      # snapshot, so concurrent jobs clobber and race it - a tag listed
-      # before its manifest is readable aborts the step. Nothing reads it:
-      # OCI installs fetch by tag from the spec hash, and reuse is off.
-      run: >
-        spack -e "$ENV_DIR" buildcache push --base-image ubuntu:24.04
-        --allow-missing push-buildcache
-
     # Names must be unique within a run, so squash the spec's punctuation.
     # Not truncated: the distinguishing variants sit at the tail.
     - name: Name log artifact

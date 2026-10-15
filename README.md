@@ -103,6 +103,32 @@ root from source and run its install-time test hooks with
 `spack install --test=root`. Dependencies may still come from the build cache.
 The default mode, `none`, performs a normal installation.
 
+The existing package matrices run `spack test run` against the exact installed
+root hash, including cached installations. Selected `main` rows also enable
+`test-root` to exercise install-time hooks. The existing project regression
+steps retain their release-specific exclusions and MPI runs.
+
+The two kinds of recipe tests have different scopes:
+
+| Package | Install-time tests (`--test=root`) | Standalone demos (`spack test run`) |
+| --- | --- | --- |
+| C++ Basix | Upstream CMake installation check | Build and run the create-and-tabulate demo |
+| C++ DOLFINx | C++ unit suite through CTest | Build and run the Poisson demo with PETSc, or interpolation/IO demo without PETSc |
+| Python Basix | Upstream pytest suite | Run the create-and-tabulate demo |
+| Python DOLFINx | Upstream Python unit suite | Run the matrix-free Poisson demo |
+| Python FFCx | Upstream pytest suite | Compile the one-dimensional Poisson demo |
+| Python UFL | Upstream pytest suite | Run the Poisson form example |
+
+Standalone tests reuse files from the matching upstream release. The recipes
+save these files during installation with `cache_extra_test_sources`, so tests
+run against installed packages without the original source/build directory.
+No custom smoke-test programs are maintained in this repository. Python
+packages also inherit Spack's import checks.
+
+Call the `publish-buildcache` action after the job's tests, passing
+`env-path` and `if: always()` so a failed or cancelled job still caches what
+it built. The action skips forked pull requests, which have no write access.
+
 ## Developer notes
 
 Diffing against an upstream `builtin` package set:
