@@ -67,19 +67,10 @@ class FenicsBasix(CMakePackage):
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
         args.extend(getattr(self, "cmake_flag_args", []))
-        # GNUInstallDirs puts CMAKE_INSTALL_LIBDIR at lib64 on some distributions.
-        libdir = next(
-            (
-                d
-                for d in (self.prefix.lib, self.prefix.lib64)
-                if os.path.isdir(join_path(d, "cmake", "basix"))
-            ),
-            self.prefix.lib,
-        )
         args.extend(
             [
                 self.define("CMAKE_BUILD_TYPE", "Developer"),
-                self.define("Basix_DIR", join_path(libdir, "cmake", "basix")),
+                self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
             ]
         )
         cmake("-S", join_path(self.stage.source_path, "test", "test_cmake"), "-B", test_dir, *args)
@@ -90,8 +81,9 @@ class FenicsBasix(CMakePackage):
     @run_after("install")
     def cache_test_sources(self):
         sources = ["demo/cpp/demo_create_and_tabulate"]
-        if os.path.isdir(join_path(self.stage.source_path, "cmake")):
-            sources.append("cmake")
+        helper = "cmake/BasixPythonHints.cmake"
+        if os.path.isfile(join_path(self.stage.source_path, helper)):
+            sources.append(helper)
         cache_extra_test_sources(self, sources)
 
     test_requires_compiler = True
