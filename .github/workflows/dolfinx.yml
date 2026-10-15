@@ -30,6 +30,8 @@ jobs:
     env:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      PRTE_ALLOW_RUN_AS_ROOT: 1
+      PRTE_ALLOW_RUN_AS_ROOT_CONFIRM: 1
       PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe   # Newer OpenMPI
       OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
 
@@ -109,6 +111,8 @@ jobs:
       PYTEST_ADDOPTS: -k 'not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1]'
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      PRTE_ALLOW_RUN_AS_ROOT: 1
+      PRTE_ALLOW_RUN_AS_ROOT_CONFIRM: 1
       PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe   # Newer OpenMPI
       OMPI_MCA_rmaps_base_oversubscribe: true                 # Older OpenMPI
 

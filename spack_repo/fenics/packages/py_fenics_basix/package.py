@@ -29,6 +29,9 @@ class PyFenicsBasix(PythonPackage):
     with default_args(deprecated=True):
         version("0.8.0", sha256="b299af82daf8fa3e4845e17f202491fe71b313bf6ab64c767a5287190b3dd7fe")
 
+    # Basix 0.8 wraps nanobind enums; extract their integer value directly.
+    patch("enum-int.patch", when="@0.8")
+
     # CMake build type
     variant(
         "build_type",
