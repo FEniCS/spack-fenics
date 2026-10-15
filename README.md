@@ -102,8 +102,8 @@ Set `test-root: 'true'` to concretize test dependencies and run
 hooks execute; dependencies may come from the build cache.
 
 Call the `publish-buildcache` action after the job's tests, passing
-`env-path`. It publishes on successful jobs with write access and skips
-forked pull requests.
+`env-path` and `if: always()` so a failed or cancelled job still caches what
+it built. The action skips forked pull requests, which have no write access.
 
 ## Developer notes
 

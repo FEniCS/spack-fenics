@@ -37,6 +37,7 @@ jobs:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-ufcx@${{ matrix.version }} %gcc@13
       - name: Publish build cache
+        if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache
         with:
           env-path: ${{ steps.spack.outputs.env-path }}
@@ -77,6 +78,7 @@ jobs:
           spack cd "/$ROOT_HASH"
           python -m pytest -n auto test/
       - name: Publish build cache
+        if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache
         with:
           env-path: ${{ steps.spack.outputs.env-path }}

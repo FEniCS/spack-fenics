@@ -59,6 +59,7 @@ jobs:
           spec: ${{ matrix.spec }}
           test-root: 'true'
       - name: Publish build cache
+        if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache
         with:
           env-path: ${{ steps.spack.outputs.env-path }}

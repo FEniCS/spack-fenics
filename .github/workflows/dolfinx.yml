@@ -73,6 +73,7 @@ jobs:
           ctest -V --output-on-failure -R unittests_np_1
           ctest -V --output-on-failure -R unittests_np_3
       - name: Publish build cache
+        if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache
         with:
           env-path: ${{ steps.spack.outputs.env-path }}
@@ -167,6 +168,7 @@ jobs:
           python -m pytest -n auto -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
           mpiexec -n 3 python -m pytest -m "petsc4py or adios2" -k "not test_cffi_expression and not test_symmetry_interior_facet_assembly[mesh1] $SKIP_EXACT" python/test/unit
       - name: Publish build cache
+        if: always()
         uses: ./spack-fenics/.github/actions/publish-buildcache
         with:
           env-path: ${{ steps.spack.outputs.env-path }}
