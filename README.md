@@ -97,11 +97,12 @@ in the input spec list. Use `spack patch "/$ROOT_HASH"` when fetching source
 for manual tests that need recipe patches; `spack stage` only extracts it. Each build uploads `log.xml`,
 `spack.yaml` and `spack.lock` for diagnosis and reproduction.
 
-Set `test-dependencies: 'true'` to concretize and install root test
-dependencies while allowing the root to come from the binary cache. Set
-`test-root: 'true'` to additionally build the root from source and run its
-install-time test hooks with `spack install --test=root`. Dependencies may
-still come from the build cache.
+Set `test-mode: dependencies` to concretize and install root test dependencies
+while allowing a cached root. Use `test-mode: root` to additionally build the
+root from source and run its install-time test hooks with
+`spack install --test=root`. Dependencies may still come from the build cache.
+The default mode, `none`, performs a normal installation. The action exports
+its selected `test-mode` so callers can avoid duplicate test runs.
 
 ## Developer notes
 

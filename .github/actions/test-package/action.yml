@@ -4,12 +4,9 @@ inputs:
   spec:
     description: 'Spack spec syntax'
     required: true
-  test-root:
-    description: 'Run root install-time tests from source, with cached dependencies allowed.'
-    default: 'false'
-  test-dependencies:
-    description: 'Concretize and install root test dependencies, including for cached roots.'
-    default: 'false'
+  test-mode:
+    description: 'Testing mode: none, dependencies (allow cached roots), or root (source install-time tests).'
+    default: 'none'
   env-path:
     description: >-
       Directory for the Spack environment. Left in place for the rest of the
@@ -24,6 +21,9 @@ inputs:
       as GHCR_TOKEN, since later install steps re-read the mirror.
     required: true
 outputs:
+  test-mode:
+    description: 'Testing mode selected for this installation.'
+    value: ${{ inputs.test-mode }}
   env-path:
     description: 'Directory of the Spack environment holding the built spec.'
     value: ${{ inputs.env-path }}
@@ -129,8 +129,7 @@ runs:
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-        TEST_ROOT: ${{ inputs.test-root }}
-        TEST_DEPENDENCIES: ${{ inputs.test-dependencies }}
+        TEST_MODE: ${{ inputs.test-mode }}
       run: |
         spack -e "$ENV_DIR" config add concretizer:unify:true
         # Keep the buildcache out of the solve: with reuse on, hashes depend
@@ -138,9 +137,11 @@ runs:
         # Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
         args=(--deprecated -j "$(nproc)")
-        if [ "$TEST_ROOT" = true ] || [ "$TEST_DEPENDENCIES" = true ]; then
-          args+=(--test=root)
-        fi
+        case "$TEST_MODE" in
+          none) ;;
+          dependencies|root) args+=(--test=root) ;;
+          *) echo "::error::Invalid test-mode: $TEST_MODE"; exit 1 ;;
+        esac
         spack -e "$ENV_DIR" concretize "${args[@]}"
 
     - name: Record root hash
@@ -156,15 +157,14 @@ runs:
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-        TEST_ROOT: ${{ inputs.test-root }}
-        TEST_DEPENDENCIES: ${{ inputs.test-dependencies }}
+        TEST_MODE: ${{ inputs.test-mode }}
       run: |
         args=(--deprecated -j "$(nproc)" --log-format junit --log-file log.xml)
         # Explicitly install test dependencies even when the root is cached.
-        if [ "$TEST_ROOT" = true ] || [ "$TEST_DEPENDENCIES" = true ]; then
+        if [ "$TEST_MODE" != none ]; then
           spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" --test=root --only dependencies --include-build-deps
         fi
-        if [ "$TEST_ROOT" = true ]; then
+        if [ "$TEST_MODE" = root ]; then
           args+=(--test=root --use-buildcache=package:never,dependencies:auto)
         fi
         spack -e "$ENV_DIR" install "${args[@]}"
@@ -195,10 +195,10 @@ runs:
       shell: bash
       env:
         SPEC: ${{ inputs.spec }}
-        TEST_ROOT: ${{ inputs.test-root }}
+        TEST_MODE: ${{ inputs.test-mode }}
       run: |
         slug=$(printf '%s' "$SPEC" | tr -cs 'A-Za-z0-9.@+' '-' | sed 's/^-//; s/-$//')
-        if [ "$TEST_ROOT" = true ]; then
+        if [ "$TEST_MODE" = root ]; then
           slug="$slug-test-root"
         fi
         echo "name=$slug" >> "$GITHUB_OUTPUT"
