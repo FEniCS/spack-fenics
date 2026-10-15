@@ -160,18 +160,7 @@ class PyFenicsDolfinx(PythonPackage):
         if markers:
             args.extend(["-m", " and ".join(markers)])
 
-        python_pkg = self.spec["python"].package
         python = self.spec["python"].command
-        python.add_default_env(
-            "PYTHONPATH",
-            os.pathsep.join(
-                [
-                    join_path(self.prefix, python_pkg.platlib),
-                    join_path(self.prefix, python_pkg.purelib),
-                    os.environ.get("PYTHONPATH", ""),
-                ]
-            ),
-        )
         with working_dir(self.stage.source_path):
             python(*args)
 
