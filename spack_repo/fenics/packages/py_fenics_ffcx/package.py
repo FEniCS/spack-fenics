@@ -68,6 +68,7 @@ class PyFenicsFfcx(PythonPackage):
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_install(self):
+        """Run the upstream test suite against installed FFCx."""
         python = self.spec["python"].command
         python.add_default_env(
             "PATH", os.pathsep.join([join_path(self.prefix, "bin"), os.environ["PATH"]])
@@ -88,6 +89,7 @@ class PyFenicsFfcx(PythonPackage):
 
     @run_after("install")
     def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
         cache_extra_test_sources(self, "demo/Poisson1D.py")
 
     def test_poisson(self):
