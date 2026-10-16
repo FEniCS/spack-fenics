@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %gcc@13", "build_type=Developer %clang@18"]
+        spec: ["%gcc@13", "%clang@18"]
 
     steps:
       - uses: actions/checkout@v7
