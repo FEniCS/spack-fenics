@@ -128,6 +128,7 @@ class FenicsDolfinx(CMakePackage):
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_install(self):
+        """Build and run the upstream C++ unit suite against installed DOLFINx."""
         test_dir = join_path(self.stage.path, "spack-test-build")
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
@@ -145,6 +146,7 @@ class FenicsDolfinx(CMakePackage):
 
     @run_after("install")
     def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
         demo = "poisson" if "+petsc" in self.spec else "interpolation-io"
         cache_extra_test_sources(self, join_path("cpp", "demo", demo))
 
