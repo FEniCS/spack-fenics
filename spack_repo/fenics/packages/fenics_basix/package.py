@@ -65,6 +65,15 @@ class FenicsBasix(CMakePackage):
     @on_package_attributes(run_tests=True)
     def check_install(self):
         """Build and run the upstream CMake check against installed Basix."""
+        if self.spec.satisfies("@0.9:0.11"):
+            # These releases request C++23 for a check that only needs C++20.
+            # Keep installation tests compatible with supported GCC 10 builds.
+            filter_file(
+                "set(CMAKE_CXX_STANDARD 23)",
+                "set(CMAKE_CXX_STANDARD 20)",
+                join_path(self.stage.source_path, "test", "test_cmake", "CMakeLists.txt"),
+                string=True,
+            )
         test_dir = join_path(self.stage.path, "spack-test-build")
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
