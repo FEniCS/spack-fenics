@@ -36,6 +36,7 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          test: true
 
   py-fenics-basix:
     runs-on: ubuntu-24.04
@@ -60,6 +61,7 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
+          test: false
       - name: Run tests (not 0.8)
         if: ${{ matrix.version != '0.8' }}
         shell: spack-bash {0}

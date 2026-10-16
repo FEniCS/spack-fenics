@@ -35,6 +35,7 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-ufl@${{ matrix.version }}
+          test: false
       # NOTE: Reference counting changed in Python 3.14, leading to test failure.
       - name: Run tests
         shell: spack-bash {0}

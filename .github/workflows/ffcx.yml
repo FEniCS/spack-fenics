@@ -36,6 +36,7 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-ufcx@${{ matrix.version }} %gcc@13
+          test: false
 
   py-fenics-ffcx:
     runs-on: ubuntu-24.04
@@ -59,6 +60,7 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@13 py-numba
+          test: false
       # NOTE: ffcx version 0.8 currently broken
       - name: Run tests
         if: ${{ matrix.version != '0.8' }}

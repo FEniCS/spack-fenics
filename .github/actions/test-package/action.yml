@@ -17,6 +17,9 @@ inputs:
       Token for the ghcr.io build cache; pass secrets.GITHUB_TOKEN. Exported
       as GHCR_TOKEN, since later install steps re-read the mirror.
     required: true
+  test: # TODO: remove once all packages support testing
+    description: 'Run tests'
+    required: true
 outputs:
   env-path:
     description: 'Directory of the Spack environment holding the built spec.'
@@ -134,8 +137,18 @@ runs:
         ENV_DIR: ${{ inputs.env-path }}
       run: >
         spack -e "$ENV_DIR" install --deprecated -j $(nproc)
+        --use-buildcache package:never
+        ${{ inputs.test == 'true' && '--test=root' || '' }}
         --log-format junit
         --log-file log.xml
+
+    - name: Test
+      if: ${{ inputs.test == 'true' }}
+      shell: spack-bash {0}
+      env:
+        ENV_DIR: ${{ inputs.env-path }}
+      run: >
+        spack -e "$ENV_DIR" test run $SPEC
 
     # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
     # so the push would 401 on a step that tests nothing. Reads are
