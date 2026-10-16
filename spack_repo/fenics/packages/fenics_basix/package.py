@@ -64,6 +64,7 @@ class FenicsBasix(CMakePackage):
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_install(self):
+        """Build and run the upstream CMake check against installed Basix."""
         test_dir = join_path(self.stage.path, "spack-test-build")
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
@@ -76,6 +77,7 @@ class FenicsBasix(CMakePackage):
 
     @run_after("install")
     def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
         sources = ["demo/cpp/demo_create_and_tabulate"]
         helper = "cmake/BasixPythonHints.cmake"
         if os.path.isfile(join_path(self.stage.source_path, helper)):
