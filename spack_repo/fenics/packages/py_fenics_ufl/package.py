@@ -93,6 +93,7 @@ class PyFenicsUfl(PythonPackage):
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_install(self):
+        """Run the upstream test suite against installed UFL."""
         python = self.spec["python"].command
         args = ["-m", "pytest", "-v", "--import-mode=append", "-n", str(make_jobs), "."]
         # UFL 2025.2 fixes Python 3.14 borrowed-reference counts.
@@ -103,6 +104,7 @@ class PyFenicsUfl(PythonPackage):
 
     @run_after("install")
     def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
         sources = ["demo/Poisson.py"]
         if os.path.isfile(join_path(self.stage.source_path, "test", "utils.py")):
             sources.append("test/utils.py")
