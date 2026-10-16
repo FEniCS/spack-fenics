@@ -100,6 +100,7 @@ class PyFenicsBasix(PythonPackage):
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_install(self):
+        """Run the upstream Python test suite against installed Basix."""
         python = self.spec["python"].command
         args = ["-m", "pytest", "-v", "--import-mode=importlib", "-n", str(make_jobs), "test"]
         if self.spec.satisfies("@0.8"):
@@ -109,6 +110,7 @@ class PyFenicsBasix(PythonPackage):
 
     @run_after("install")
     def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
         cache_extra_test_sources(self, "demo/python/demo_create_and_tabulate.py")
 
     def test_create_and_tabulate(self):
