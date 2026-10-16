@@ -68,12 +68,7 @@ class FenicsBasix(CMakePackage):
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
         args.extend(getattr(self, "cmake_flag_args", []))
-        args.extend(
-            [
-                self.define("CMAKE_BUILD_TYPE", "Developer"),
-                self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
-            ]
-        )
+        args.append(self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]))
         cmake("-S", join_path(self.stage.source_path, "test", "test_cmake"), "-B", test_dir, *args)
         cmake("--build", test_dir, "--parallel", str(make_jobs))
         executable = "a.out.exe" if self.spec.satisfies("platform=windows") else "a.out"
@@ -98,12 +93,7 @@ class FenicsBasix(CMakePackage):
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
         args.extend(getattr(self, "cmake_flag_args", []))
-        args.extend(
-            [
-                self.define("CMAKE_BUILD_TYPE", "Developer"),
-                self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
-            ]
-        )
+        args.append(self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]))
         # Spack 1.2.2 can omit compiler environment variables in test context.
         if not os.environ.get("CXX"):
             args.append(self.define("CMAKE_CXX_COMPILER", self.spec["cxx"].package.cxx))
