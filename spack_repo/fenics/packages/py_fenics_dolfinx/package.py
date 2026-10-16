@@ -151,6 +151,7 @@ class PyFenicsDolfinx(PythonPackage):
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def check_install(self):
+        """Run the upstream Python unit suite with xdist and three MPI ranks."""
         args = ["-m", "pytest", "-v", "--import-mode=importlib", "python/test/unit"]
         markers = []
         if self.spec.satisfies("@0.9: ~petsc4py"):
@@ -192,6 +193,7 @@ class PyFenicsDolfinx(PythonPackage):
 
     @run_after("install")
     def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
         cache_extra_test_sources(self, self.poisson_demo)
 
     def test_poisson(self):
