@@ -132,12 +132,7 @@ class FenicsDolfinx(CMakePackage):
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
         args.extend(getattr(self, "cmake_flag_args", []))
-        args.extend(
-            [
-                self.define("CMAKE_BUILD_TYPE", "Developer"),
-                self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
-            ]
-        )
+        args.append(self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]))
         if self.spec["cxx"].satisfies("clang@:18"):
             # Older Clang rejects warning options used by newer test sources.
             cmake.add_default_env(
@@ -163,12 +158,7 @@ class FenicsDolfinx(CMakePackage):
         generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
         args = CMakeBuilder.std_args(self, generator=generator)
         args.extend(getattr(self, "cmake_flag_args", []))
-        args.extend(
-            [
-                self.define("CMAKE_BUILD_TYPE", "Developer"),
-                self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]),
-            ]
-        )
+        args.append(self.define("CMAKE_PREFIX_PATH", [self.prefix, *get_cmake_prefix_path(self)]))
         # Spack 1.2.2 can omit compiler environment variables in test context.
         if not os.environ.get("CC"):
             args.append(self.define("CMAKE_C_COMPILER", self.spec["c"].package.cc))
