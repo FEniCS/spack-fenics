@@ -26,7 +26,7 @@ outputs:
     value: ${{ inputs.env-path }}
   root-hash:
     description: 'Hash of the first concretized root, for staging the tested package.'
-    value: ${{ steps.roots.outputs.hash }}
+    value: ${{ steps.concretize.outputs.hash }}
 runs:
   using: "composite"
   steps:
@@ -123,6 +123,7 @@ runs:
       run: spack -e "$ENV_DIR" add $SPEC
 
     - name: Concretize
+      id: concretize
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
@@ -140,13 +141,6 @@ runs:
           *) echo "::error::Invalid test-mode: $TEST_MODE"; exit 1 ;;
         esac
         spack -e "$ENV_DIR" concretize "${args[@]}"
-
-    - name: Record root hash
-      id: roots
-      shell: spack-bash {0}
-      env:
-        ENV_DIR: ${{ inputs.env-path }}
-      run: |
         root_hash=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; print(ev.active_environment().concrete_roots()[0].dag_hash())')
         echo "hash=$root_hash" >> "$GITHUB_OUTPUT"
 
@@ -157,13 +151,16 @@ runs:
         TEST_MODE: ${{ inputs.test-mode }}
       run: |
         args=(--deprecated -j "$(nproc)" --log-format junit --log-file log.xml)
-        # Explicitly install test dependencies even when the root is cached.
-        if [ "$TEST_MODE" != none ]; then
-          spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" --test=root --only dependencies --include-build-deps
-        fi
-        if [ "$TEST_MODE" = root ]; then
-          args+=(--test=root --use-buildcache=package:never,dependencies:auto)
-        fi
+        case "$TEST_MODE" in
+          dependencies)
+            # Cached roots still need dependencies for standalone tests.
+            spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" \
+              --test=root --only dependencies --include-build-deps
+            ;;
+          root)
+            args+=(--test=root --use-buildcache=package:never,dependencies:auto)
+            ;;
+        esac
         spack -e "$ENV_DIR" install "${args[@]}"
 
     # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
