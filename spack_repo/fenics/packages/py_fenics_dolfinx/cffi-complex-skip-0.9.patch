@@ -1,0 +1,49 @@
+Skip the Numba/CFFI complex kernel tests from cffi 1.17.
+
+Numba cannot type CFFI complex arguments: see map_type in
+numba/core/typing/cffi_utils.py. From cffi 1.17 the complex ctypes are named
+_cffi_{float,double}_complex_t, which that mapping does not know, so the test
+errors rather than failing cleanly.
+
+Backport of the upstream condition from DOLFINx commit aa9570ddf8
+(FEniCS/dolfinx#4397), which replaced the narrower 1.17/2.0.0 range with an
+open-ended one. Module-level 'cffi = pytest.importorskip("cffi")' already
+binds the name in every release patched here.
+
+0.9 marks the parameters only with xfail_win32_complex.
+
+--- a/python/test/unit/fem/test_custom_assembler.py
++++ b/python/test/unit/fem/test_custom_assembler.py
+@@ -235,8 +235,30 @@
+     [
+         np.float32,
+         np.float64,
+-        pytest.param(np.complex64, marks=pytest.mark.xfail_win32_complex),
+-        pytest.param(np.complex128, marks=pytest.mark.xfail_win32_complex),
++        pytest.param(
++            np.complex64,
++            marks=[
++                pytest.mark.xfail_win32_complex,
++                pytest.mark.skipif(
++                    cffi.__version_info__ >= (1, 17),
++                    reason="Numba cannot type CFFI complex arguments, see map_type in "
++                    "numba/core/typing/cffi_utils.py. From cffi 1.17 the complex ctypes "
++                    "are named _cffi_{float,double}_complex_t.",
++                ),
++            ],
++        ),
++        pytest.param(
++            np.complex128,
++            marks=[
++                pytest.mark.xfail_win32_complex,
++                pytest.mark.skipif(
++                    cffi.__version_info__ >= (1, 17),
++                    reason="Numba cannot type CFFI complex arguments, see map_type in "
++                    "numba/core/typing/cffi_utils.py. From cffi 1.17 the complex ctypes "
++                    "are named _cffi_{float,double}_complex_t.",
++                ),
++            ],
++        ),
+     ],
+ )
+ def test_custom_mesh_loop_rank1(dtype):
