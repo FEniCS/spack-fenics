@@ -35,12 +35,4 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-ufl@${{ matrix.version }}
-      # NOTE: Reference counting changed in Python 3.14, leading to test failure.
-      - name: Run tests
-        shell: spack-bash {0}
-        run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
-          spack install --add py-pytest py-pytest-xdist
-          spack stage py-fenics-ufl@${{ matrix.version }}
-          spack cd py-fenics-ufl@${{ matrix.version }}
-          python -m pytest -n auto -k "not test_strip_form_arguments_strips_data_refs" test/
+          test-mode: root

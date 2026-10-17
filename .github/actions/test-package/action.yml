@@ -1,9 +1,21 @@
 name: test-package
-description: 'Builds a spack package from given spack-spec'
+description: >-
+  Build a Spack package from the given spec, optionally run its tests, and
+  publish what was built to the build cache.
 inputs:
   spec:
-    description: 'Spack spec syntax'
+    description: >-
+      Spack spec syntax. List the package under test first: the Concretize
+      step checks that the first root matches the first name here.
     required: true
+  test-mode:
+    description: >-
+      What to do about the root's tests. 'none': plain install. 'dependencies':
+      install the root's test dependencies so 'spack test run' works, but do
+      not run its install-time tests, leaving the root free to come from the
+      cache. 'root': also build the root from source and run its install-time
+      tests. Neither mode tests the dependencies themselves.
+    default: 'none'
   env-path:
     description: >-
       Directory for the Spack environment. Left in place for the rest of the
@@ -21,6 +33,11 @@ outputs:
   env-path:
     description: 'Directory of the Spack environment holding the built spec.'
     value: ${{ inputs.env-path }}
+  root-hash:
+    description: >-
+      Hash of the first concretized root, for staging and testing the package
+      under test. List that package first in 'spec'.
+    value: ${{ steps.concretize.outputs.hash }}
 runs:
   using: "composite"
   steps:
@@ -52,8 +69,8 @@ runs:
       uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
         spack_ref: v1.2.2
-        # spack/spack-packages @ 2026-08-17
-        packages_ref: 1ccf95574922e2a7f7ef0351bd67758ad4634b7a
+        # spack/spack-packages @ 2026-10-14
+        packages_ref: 09a7cc27b5d54c9f286cf645a11ae7d95bf38717
 
     # Job-wide, not step-local: mirrors.yaml stores these names, and spack
     # re-resolves them in every later install step. Not GITHUB_*, which
@@ -117,32 +134,84 @@ runs:
       run: spack -e "$ENV_DIR" add $SPEC
 
     - name: Concretize
+      id: concretize
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
+        TEST_MODE: ${{ inputs.test-mode }}
+        SPEC: ${{ inputs.spec }}
       run: |
         spack -e "$ENV_DIR" config add concretizer:unify:true
         # Keep the buildcache out of the solve: with reuse on, hashes depend
-        # on what the mirror happens to hold, and 66 jobs are pushing to it.
+        # on what the mirror happens to hold, and concurrent jobs push to it.
         # Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
-        spack -e "$ENV_DIR" concretize --deprecated -j $(nproc)
+        args=(--deprecated -j "$(nproc)")
+        case "$TEST_MODE" in
+          none) ;;
+          dependencies|root) args+=(--test=root) ;;
+          *) echo "::error::Invalid test-mode: $TEST_MODE"; exit 1 ;;
+        esac
+        spack -e "$ENV_DIR" concretize "${args[@]}"
+        # Tests run against the FIRST concretized root, so the package under
+        # test must be listed first. A mis-ordered input would otherwise test
+        # the wrong package and still go green, so compare the root against
+        # the first name in the input and fail loudly on a mismatch. The hash
+        # is exported in every mode, including 'none', where it is what
+        # 'spack patch "/$ROOT_HASH"' needs.
+        root=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; r = ev.active_environment().concrete_roots()[0]; print(r.dag_hash(), r.name, r.format("{name}{@version}"))')
+        read -r root_hash root_name root_desc <<<"$root"
+        want=${SPEC%%[[:space:]]*}
+        want=${want%%[@%+~^=]*}
+        if [ "$want" != "$root_name" ]; then
+          echo "::error::List the package under test first in 'spec':" \
+               "first root is '$root_name', but 'spec' starts with '$want'"
+          exit 1
+        fi
+        echo "Root under test: $root_desc (/$root_hash)"
+        echo "hash=$root_hash" >> "$GITHUB_OUTPUT"
 
     - name: Install
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-      run: >
-        spack -e "$ENV_DIR" install --deprecated -j $(nproc)
-        --log-format junit
-        --log-file log.xml
+        TEST_MODE: ${{ inputs.test-mode }}
+      run: |
+        args=(--deprecated -j "$(nproc)" --log-format junit --log-file log.xml)
+        case "$TEST_MODE" in
+          dependencies)
+            # The root may come from the cache, but its test dependencies
+            # are still needed by 'spack test run'. --test selects test-only
+            # edges; --only dependencies keeps the root out of this install.
+            spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" \
+              --test=root --only dependencies --include-build-deps
+            ;;
+          root)
+            args+=(--test=root --use-buildcache=package:never,dependencies:auto)
+            ;;
+        esac
+        spack -e "$ENV_DIR" install "${args[@]}"
 
-    # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
-    # so the push would 401 on a step that tests nothing. Reads are
-    # anonymous, so they still take from the cache.
+    - name: Run stand-alone tests
+      if: ${{ inputs.test-mode != 'none' }}
+      shell: spack-bash {0}
+      env:
+        ENV_DIR: ${{ inputs.env-path }}
+        ROOT_HASH: ${{ steps.concretize.outputs.hash }}
+      # On failure dump the full test log; the summary alone rarely says why
+      # a build or demo run failed.
+      run: >-
+        spack -v -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
+        || { spack -e "$ENV_DIR" test results -l; exit 1; }
+
+    # always(), not success() or !cancelled(): a package that built is worth
+    # caching however the job ended, and cancelled runs are where the partial
+    # build saves the most time on the retry. Forked PRs get a read-only
+    # GITHUB_TOKEN whatever 'permissions' says, so the push would 401; reads
+    # are anonymous, so they still take from the cache.
     - name: Push packages to cache
       if: >-
-        ${{ !cancelled() && (github.event_name != 'pull_request'
+        ${{ always() && (github.event_name != 'pull_request'
         || github.event.pull_request.head.repo.full_name == github.repository) }}
       shell: spack-bash {0}
       env:
@@ -163,8 +232,12 @@ runs:
       shell: bash
       env:
         SPEC: ${{ inputs.spec }}
+        TEST_MODE: ${{ inputs.test-mode }}
       run: |
         slug=$(printf '%s' "$SPEC" | tr -cs 'A-Za-z0-9.@+' '-' | sed 's/^-//; s/-$//')
+        if [ "$TEST_MODE" = root ]; then
+          slug="$slug-test-root"
+        fi
         echo "name=$slug" >> "$GITHUB_OUTPUT"
 
     - name: Upload log
@@ -172,5 +245,8 @@ runs:
       uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.log.outputs.name }}-log
-        path: log.xml
+        path: |
+          log.xml
+          ${{ inputs.env-path }}/spack.yaml
+          ${{ inputs.env-path }}/spack.lock
         retention-days: 7
