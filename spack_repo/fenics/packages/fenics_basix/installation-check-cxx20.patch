@@ -1,0 +1,14 @@
+Basix 0.9–0.11 require C++20, but their installation check requests C++23.
+Keep the check compatible with supported GCC 10 builds.
+
+--- a/test/test_cmake/CMakeLists.txt
++++ b/test/test_cmake/CMakeLists.txt
+@@ -5,7 +5,7 @@
+ project(basix_test)
+ 
+ # Set the C++ standard
+-set(CMAKE_CXX_STANDARD 23)
++set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ set(CMAKE_CXX_EXTENSIONS OFF)
+ 
