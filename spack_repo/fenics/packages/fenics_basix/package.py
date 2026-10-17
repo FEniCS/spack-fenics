@@ -78,9 +78,6 @@ class FenicsBasix(CMakePackage):
             for arg in CMakeBuilder.std_args(self, generator=generator)
             if not arg.startswith(tuple(f"-D{name}:" for name in replaced))
         ]
-        # Set during a build only: Spack does not call
-        # flags_to_build_system_args in a test context, so a spec's cflags
-        # and cxxflags reach the install-time check but not the demo.
         args.extend(getattr(self, "cmake_flag_args", []))
         args.extend(self.define(name, value) for name, value in replaced.items())
         return args
@@ -116,11 +113,15 @@ class FenicsBasix(CMakePackage):
             self.test_suite.current_test_cache_dir, "demo", "cpp", "demo_create_and_tabulate"
         )
         build_dir = join_path(self.test_suite.test_dir_for_spec(self.spec), "demo-build")
+        # Test contexts do not initialize cmake_flag_args. Pass the spec's
+        # flags explicitly so ABI settings also reach the consumer build.
+        flags = {
+            name: self.spec.compiler_flags.get(name, [])
+            for name in self.spec.compiler_flags.valid_compiler_flags()
+        }
+        self.flags_to_build_system_args(flags)
         args = self.installed_cmake_args(build_dir)
-        # Spack leaves CC and CXX unset in a test context, so name the
-        # compiler instead of letting CMake find one on PATH. The real
-        # compiler, not Spack's wrapper: the demo is here to show that an
-        # ordinary consumer can build against the installed CMake package.
+        # Spack leaves CXX unset in test contexts; select the spec's compiler.
         args.append(self.define("CMAKE_CXX_COMPILER", self.spec["cxx"].package.cxx))
         with test_part(self, "test_create_and_tabulate_build", purpose="build the demo"):
             cmake("-S", source, "-B", build_dir, *args)
