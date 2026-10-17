@@ -2,7 +2,7 @@ name: test-package
 description: 'Builds a spack package from given spack-spec'
 inputs:
   spec:
-    description: 'Spack spec syntax'
+    description: 'Spack spec syntax; list the package under test first.'
     required: true
   env-path:
     description: >-
@@ -120,16 +120,24 @@ runs:
       run: spack -e "$ENV_DIR" add $SPEC
 
     - name: Concretize
+      id: concretize
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
+        RUN_TESTS: ${{ inputs.test }}
       run: |
         spack -e "$ENV_DIR" config add concretizer:unify:true
         # Keep the buildcache out of the solve: with reuse on, hashes depend
         # on what the mirror happens to hold, and 66 jobs are pushing to it.
         # Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
-        spack -e "$ENV_DIR" concretize --deprecated -j $(nproc)
+        args=(--deprecated -j "$(nproc)")
+        if [ "$RUN_TESTS" = true ]; then
+          args+=(--test=root)
+        fi
+        spack -e "$ENV_DIR" concretize "${args[@]}"
+        root_hash=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; print(ev.active_environment().concrete_roots()[0].dag_hash())')
+        echo "root-hash=$root_hash" >> "$GITHUB_OUTPUT"
 
     - name: Install
       shell: spack-bash {0}
@@ -147,8 +155,9 @@ runs:
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
+        ROOT_HASH: ${{ steps.concretize.outputs.root-hash }}
       run: >
-        spack -e "$ENV_DIR" test run $SPEC
+        spack -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
 
     # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
     # so the push would 401 on a step that tests nothing. Reads are
