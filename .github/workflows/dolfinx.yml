@@ -41,6 +41,7 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} py-fenics-ffcx catch2 cmake
+          test: false
       # FFCx compilation of poisson.py fails in ffcx/codegeneration/C/finite_element.py
       #
       # No 'spack build-env': it needs build-only deps that are absent when
@@ -105,6 +106,7 @@ jobs:
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-dolfinx@${{ matrix.version }} ${{ matrix.spec }} ^python@${{ matrix.python-version }}
+          test: false
       # pytest@8.4 required for collision of [tool.pytest] and [tool.pytest.ini_options] since @9.0
       - name: Run tests (0.9)
         if: ${{ matrix.version == '0.9'}}
