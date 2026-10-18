@@ -1,0 +1,26 @@
+Fix int() on Basix 0.8's Python enums when built against nanobind 2.x.
+
+basix.utils.Enum wraps the nanobind enum in a Python Enum, so for a member
+such as basix.CellType.triangle, self.value is the nanobind member rather
+than an integer. nanobind 2.0 began binding enums as real Python enums,
+which have no __int__, so int(self.value) raises TypeError. That breaks
+int() on every public enum in cell, finite_element, lattice, maps,
+polynomials, quadrature and sobolev_spaces.
+
+This patches installed library code, not just tests. There is no upstream
+commit to cite: 0.9 dropped the Python wrapper entirely and exposes the
+nanobind enums directly, so the bug exists only on the deprecated 0.8
+release. getattr keeps the expression correct for both nanobind generations.
+
+diff --git a/python/basix/utils.py b/python/basix/utils.py
+--- a/python/basix/utils.py
++++ b/python/basix/utils.py
+@@ -46,7 +46,7 @@ class Enum(_Enum):
+ 
+     def __int__(self) -> int:
+         """Convert to int."""
+-        return int(self.value)
++        return int(getattr(self.value, "value", self.value))
+ 
+ 
+ def index(p: int, q: typing.Optional[int] = None, r: typing.Optional[int] = None) -> int:
