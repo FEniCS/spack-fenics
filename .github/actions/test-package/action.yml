@@ -53,7 +53,7 @@ runs:
       with:
         spack_ref: v1.2.2
         # spack/spack-packages @ 2026-10-23
-        packages_ref: 588fd2f83bb25d49ad5187d4d3685e3a345c4dd3
+        packages_ref: 7edf5a3a9ec9b8bfd25ea388b8c7b3df062bc3cb
 
     # Job-wide, not step-local: mirrors.yaml stores these names, and spack
     # re-resolves them in every later install step. Not GITHUB_*, which
