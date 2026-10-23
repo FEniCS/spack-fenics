@@ -67,17 +67,20 @@ are currently not running the test suite for `py-fenics-dolfinx@0.8`.
 
 ### C++ ABIs
 
-We have observed issues when two different compilers are selected by Spack to
-build C++ components. This can lead to missing symbols at runtime error due to
-different name mangling conventions and application binary interfaces (ABIs).
-If this happens you can push the compiler down the Spack concretisation using
-`%%`, e.g.:
+C++ components built by different compilers can be binary incompatible
+(different ABIs).
+The packages in this repository therefore build `fenics-basix`,
+`fenics-dolfinx`, `py-fenics-basix` and `py-fenics-dolfinx` with the same C++
+compiler. Selecting it for one selects it for all four, e.g.:
+
+    spack spec -N py-fenics-dolfinx %clang@18
+
+Third-party C++ dependencies (Boost, spdlog, PETSc, ...) may still be built
+with a different compiler. This is normally fine on Linux, where GCC and Clang
+share libstdc++. If you see missing symbols involving them, push the compiler
+down the whole concretisation using `%%`, e.g.:
 
     spack spec -N py-fenics-dolfinx %%clang@18
-
-or a more precise approach using `^` and `%`, e.g.:
-
-    spack spec -N py-fenics-dolfinx %clang@18 ^fenics-dolfinx %clang@18 ^py-fenics-basix %clang@18 ^fenics-basix %clang@18
 
 ### Reproducing complex build environment
 
