@@ -95,6 +95,10 @@ class FenicsDolfinx(CMakePackage):
         depends_on(f"py-fenics-ffcx@{ver}", when=f"@{ver}", type="test")
     depends_on("catch2", type="test")
 
+    # ABI compatibility to fenics-basix
+    for _cxx in ("gcc", "llvm", "apple-clang", "intel-oneapi-compilers"):
+        depends_on(f"fenics-basix %cxx={_cxx}", when=f"%cxx={_cxx}")
+
     root_cmakelists_dir = "cpp"
 
     def cmake_args(self):
