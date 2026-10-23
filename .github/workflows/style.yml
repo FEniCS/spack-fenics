@@ -32,7 +32,7 @@ jobs:
         run: |
           # -O everywhere: wget writes 'name.1' rather than overwriting, and
           # the repo root already has a pyproject.toml that ruff would read.
-          url=https://raw.githubusercontent.com/spack/spack-packages/588fd2f83bb25d49ad5187d4d3685e3a345c4dd3
+          url=https://raw.githubusercontent.com/spack/spack-packages/7edf5a3a9ec9b8bfd25ea388b8c7b3df062bc3cb
           wget -O requirements.txt $url/.github/workflows/requirements/style/requirements.txt
           wget -O pyproject.toml $url/pyproject.toml
           wget -O style_check.sh $url/.ci/style_check.sh
