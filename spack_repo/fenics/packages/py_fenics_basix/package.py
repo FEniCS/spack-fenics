@@ -42,6 +42,10 @@ class PyFenicsBasix(PythonPackage):
     for ver in ("main", "0.11.0", "0.10.0.post0", "0.10.0", "0.9.0", "0.8.0"):
         depends_on(f"fenics-basix@{ver}", type=("build", "run"), when=f"@{ver}")
 
+    # ABI compatibility to fenics-basix
+    for _cxx in ("gcc", "llvm", "apple-clang", "intel-oneapi-compilers"):
+        depends_on(f"fenics-basix %cxx={_cxx}", type=("build", "run"), when=f"%cxx={_cxx}")
+
     # See python/CMakeLists.txt
     depends_on("cmake@3.21:", when="@0.9:", type="build")
     depends_on("cmake@3.19:", when="@0.8", type="build")
