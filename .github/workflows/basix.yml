@@ -15,6 +15,8 @@ concurrency:
 
 jobs:
   fenics-basix:
+    # Name is matched exactly by the README status badges; keep in sync.
+    name: fenics-basix (${{ matrix.version }}, ${{ contains(matrix.spec, 'clang@18') && 'clang' || 'gcc' }})
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
     timeout-minutes: 240
@@ -38,6 +40,8 @@ jobs:
           spec: fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
 
   py-fenics-basix:
+    # Name is matched exactly by the README status badges; keep in sync.
+    name: py-fenics-basix (${{ matrix.version }}, ${{ contains(matrix.spec, 'clang@18') && 'clang' || 'gcc' }})
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
     timeout-minutes: 240

@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   fenics-ufcx:
+    # Name is matched exactly by the README status badges; keep in sync.
+    name: fenics-ufcx (${{ matrix.version }})
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
     timeout-minutes: 240
@@ -38,6 +40,8 @@ jobs:
           spec: fenics-ufcx@${{ matrix.version }} %gcc@13
 
   py-fenics-ffcx:
+    # Name is matched exactly by the README status badges; keep in sync.
+    name: py-fenics-ffcx (${{ matrix.version }})
     runs-on: ubuntu-24.04
     container: ubuntu:24.04
     timeout-minutes: 240
