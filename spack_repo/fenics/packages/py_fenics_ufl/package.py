@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.python import PythonPackage
 
 from spack.package import *
@@ -79,9 +81,71 @@ class PyFenicsUfl(PythonPackage):
     depends_on("py-numpy", type=("build", "run"))
 
     depends_on("py-pytest", type="test")
+    depends_on("py-pytest-xdist", type="test")
+
+    import_modules = ("ufl",)
+    # Spack's install-time import check (test_imports) runs without the
+    # install prefix on PYTHONPATH, so it cannot find the package.
+    # check_install imports the installed package instead, and
+    # test_imports still runs as a stand-alone test.
+    install_time_test_callbacks = ()
+
+    def installed_module_env(self):
+        """Environment that makes the just-installed modules importable.
+
+        Spack does not put the prefix on PYTHONPATH at build time, so install
+        tests would import the staged sources instead. Reuse the run-time hook
+        of python (or python-venv), which now has the installed files to find.
+        """
+        env = EnvironmentModifications()
+        self.python_spec.package.setup_dependent_run_environment(env, self.spec)
+        return env
 
     @run_after("install")
     @on_package_attributes(run_tests=True)
-    def check_build(self):
-        with working_dir(self.stage.source_path):
-            python("-m", "pytest")
+    def check_install(self):
+        """Run the upstream test suite against installed UFL."""
+        python = self.spec["python"].command
+        python.add_default_envmod(self.installed_module_env())
+        args = ["-m", "pytest", "-v", "--import-mode=append", "-n", str(make_jobs), "."]
+        # UFL 2025.2 fixes Python 3.14 borrowed-reference counts.
+        if self.spec.satisfies("@:2025.1 ^python@3.14:"):
+            args.extend(["-k", "not test_strip_form_arguments_strips_data_refs"])
+        with working_dir(join_path(self.stage.source_path, "test")):
+            python(*args)
+
+    @property
+    def poisson_demo(self):
+        """Upstream demo: a .ufl form file until 2021.1, a script from 2022.1."""
+        return join_path(
+            "demo", "Poisson.py" if self.spec.satisfies("@2022.1:") else "Poisson.ufl"
+        )
+
+    @run_after("install")
+    def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
+        sources = [self.poisson_demo]
+        if self.spec.satisfies("@2025.2:"):
+            sources.append(join_path("test", "utils.py"))
+        cache_extra_test_sources(self, sources)
+
+    def test_poisson(self):
+        """Run the upstream Poisson form example."""
+        cache = self.test_suite.current_test_cache_dir
+        python = self.spec["python"].command
+        if self.spec.satisfies("@2025.2:"):
+            # Drop empty entries: a trailing separator would put the working
+            # directory on sys.path.
+            entries = [join_path(cache, "test"), os.environ.get("PYTHONPATH", "")]
+            python.add_default_env("PYTHONPATH", os.pathsep.join(e for e in entries if e))
+        demo = join_path(cache, self.poisson_demo)
+        if self.spec.satisfies("@2022.1:"):
+            python(demo)
+        else:
+            # Legacy .ufl forms rely on the namespace supplied by UFL's loader.
+            python(
+                "-c",
+                "import sys; from ufl.algorithms.formfiles import load_ufl_file; "
+                "load_ufl_file(sys.argv[1])",
+                demo,
+            )

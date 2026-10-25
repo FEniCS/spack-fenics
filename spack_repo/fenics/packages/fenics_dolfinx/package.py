@@ -2,7 +2,10 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack_repo.builtin.build_systems.cmake import CMakePackage
+import os
+import shlex
+
+from spack_repo.builtin.build_systems.cmake import CMakeBuilder, CMakePackage
 
 from spack.package import *
 
@@ -65,9 +68,12 @@ class FenicsDolfinx(CMakePackage):
 
     conflicts("~petsc", when="+slepc", msg="+slepc requires +petsc")
 
-    depends_on("cmake@3.26:", when="@0.11:", type="build")
-    depends_on("cmake@3.21:", when="@0.9:", type="build")
-    depends_on("cmake@3.19:", when="@:0.8", type="build")
+    depends_on("cmake@3.26:", when="@0.11:", type=("build", "test"))
+    depends_on("cmake@3.21:", when="@0.9:", type=("build", "test"))
+    depends_on("cmake@3.19:", when="@:0.8", type=("build", "test"))
+    # Build-only: Spack 1.2.2 fails to solve this virtual with both build and
+    # test types. The build edge keeps it in the DAG, which is all the demo
+    # test needs to name the executable.
     depends_on("pkgconfig", type="build")
     depends_on("mpi")
     # HDF5Interface.cpp #if H5_VERSION_GE are not precise enough.
@@ -93,9 +99,17 @@ class FenicsDolfinx(CMakePackage):
         depends_on(f"fenics-ufcx@{ver}", when=f"@{ver}")
         depends_on(f"fenics-basix@{ver}", when=f"@{ver}")
         depends_on(f"py-fenics-ffcx@{ver}", when=f"@{ver}", type="test")
-    depends_on("catch2", type="test")
+    depends_on("catch2@3:", type="test")
+
+    depends_on("ninja", when="generator=ninja", type="test")
+    depends_on("gmake", when="generator=make", type="test")
 
     root_cmakelists_dir = "cpp"
+
+    # Unit tests are built against the installed library, not in the build
+    # tree: cpp includes CTest, so BUILD_TESTING=ON would otherwise give the
+    # default 'check' callback a target to run.
+    build_time_test_callbacks = ()
 
     def cmake_args(self):
         return [
@@ -109,3 +123,94 @@ class FenicsDolfinx(CMakePackage):
             self.define("DOLFINX_ENABLE_SCOTCH", "partitioners=scotch" in self.spec),
             self.define("DOLFINX_ENABLE_SUPERLU_DIST", "superlu-dist" in self.spec),
         ]
+
+    def installed_cmake_args(self, build_dir):
+        """Preserve build settings when compiling against the installed library.
+
+        Two of std_args' defaults are replaced: its CMAKE_PREFIX_PATH lacks
+        the prefix the tests link against, and its CMAKE_INSTALL_PREFIX aims
+        at the package under test, which a throwaway build must never write
+        into.
+        """
+        generator = "Ninja" if self.spec.satisfies("generator=ninja") else "Unix Makefiles"
+        replaced = {
+            "CMAKE_PREFIX_PATH": [self.prefix, *get_cmake_prefix_path(self)],
+            "CMAKE_INSTALL_PREFIX": join_path(build_dir, "install"),
+        }
+        args = [
+            arg
+            for arg in CMakeBuilder.std_args(self, generator=generator)
+            if not arg.startswith(tuple(f"-D{name}:" for name in replaced))
+        ]
+        # Set during a build only: Spack does not call
+        # flags_to_build_system_args in a test context, so a spec's cflags
+        # and cxxflags reach the install-time check but not the demo.
+        args.extend(getattr(self, "cmake_flag_args", []))
+        args.extend(self.define(name, value) for name, value in replaced.items())
+        return args
+
+    @staticmethod
+    def _add_cxx_flag(args, flag):
+        """Append a flag to either typed or untyped CMake compiler flags."""
+        for i, arg in enumerate(args):
+            if arg.startswith(("-DCMAKE_CXX_FLAGS=", "-DCMAKE_CXX_FLAGS:")):
+                args[i] = f"{arg} {flag}"
+                return args
+        return args + [f"-DCMAKE_CXX_FLAGS={flag}"]
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_install(self):
+        """Build and run the upstream C++ unit suite against installed DOLFINx."""
+        test_dir = join_path(self.stage.path, "spack-test-build")
+        args = self.installed_cmake_args(test_dir)
+        # Forward caller-supplied launcher flags as a CMake list.
+        args.append(
+            self.define("MPIEXEC_PREFLAGS", shlex.split(os.environ.get("MPIEXEC_PREFLAGS", "")))
+        )
+        # Spack's llvm provider before Clang 19 lacks -Wno-c2y-extensions.
+        if self.spec["cxx"].satisfies("llvm@:18"):
+            args = self._add_cxx_flag(args, "-Wno-unknown-warning-option")
+        cmake("-S", join_path(self.stage.source_path, "cpp", "test"), "-B", test_dir, *args)
+        cmake("--build", test_dir, "--parallel", str(make_jobs))
+        # Tests at different MPI sizes share output filenames.
+        with working_dir(test_dir):
+            ctest("--output-on-failure", "--parallel", "1")
+
+    @property
+    def demo_name(self):
+        """Upstream demo exercised stand-alone; Poisson needs a PETSc solver."""
+        return "poisson" if self.spec.satisfies("+petsc") else "interpolation-io"
+
+    @run_after("install")
+    def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
+        cache_extra_test_sources(self, join_path("cpp", "demo", self.demo_name))
+
+    # do_test() skips the suite with a clear error when the spec has no
+    # compiler, so the lookups below are safe.
+    test_requires_compiler = True
+
+    def test_demo(self):
+        """Build and run an upstream demo against the installed library."""
+        cmake = self.spec["cmake"].command
+        demo = self.demo_name
+        source = join_path(self.test_suite.current_test_cache_dir, "cpp", "demo", demo)
+        build_dir = join_path(self.test_suite.test_dir_for_spec(self.spec), "demo-build")
+        args = self.installed_cmake_args(build_dir)
+        # Spack leaves CC and CXX unset in a test context, so name the
+        # compilers instead of letting CMake find them on PATH. The demos
+        # enable C as well as C++. The real compilers, not Spack's wrappers:
+        # a demo is here to show that an ordinary consumer can build against
+        # the installed CMake package.
+        args.append(self.define("CMAKE_C_COMPILER", self.spec["c"].package.cc))
+        args.append(self.define("CMAKE_CXX_COMPILER", self.spec["cxx"].package.cxx))
+        # pkg-config is a build dependency, so it is not on PATH here.
+        args.append(self.define("PKG_CONFIG_EXECUTABLE", self.spec["pkgconfig"].command.path))
+        with test_part(self, "test_demo_build", purpose=f"build the {demo} demo"):
+            cmake("-S", source, "-B", build_dir, *args)
+            cmake("--build", build_dir, "--parallel", str(make_jobs))
+        suffix = ".exe" if self.spec.satisfies("platform=windows") else ""
+        executable = join_path(build_dir, "demo_" + demo + suffix)
+        with test_part(self, "test_demo_run", purpose=f"run the {demo} demo"):
+            Executable(executable)()

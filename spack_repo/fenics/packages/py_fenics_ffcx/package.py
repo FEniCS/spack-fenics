@@ -60,6 +60,11 @@ class PyFenicsFfcx(PythonPackage):
     depends_on("py-pygraphviz", when="@0.8", type="test")
 
     import_modules = ("ffcx",)
+    # Spack's install-time import check (test_imports) runs without the
+    # install prefix on PYTHONPATH, so it cannot find the package.
+    # check_install imports the installed package instead, and
+    # test_imports still runs as a stand-alone test.
+    install_time_test_callbacks = ()
 
     def installed_module_env(self):
         """Environment that makes the just-installed modules importable.
