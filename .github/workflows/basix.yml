@@ -15,8 +15,8 @@ concurrency:
 
 jobs:
   fenics-basix:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read
@@ -38,8 +38,8 @@ jobs:
           test-mode: root
 
   py-fenics-basix:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read

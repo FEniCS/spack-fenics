@@ -16,8 +16,8 @@ concurrency:
 
 jobs:
   fenics-ufcx:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read
@@ -37,8 +37,8 @@ jobs:
           spec: fenics-ufcx@${{ matrix.version }} %gcc@13
 
   py-fenics-ffcx:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read

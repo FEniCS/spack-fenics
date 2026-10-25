@@ -18,7 +18,7 @@ permissions:
 jobs:
   style-check:
     name: Spack style check ✨
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/setup-python@v7
@@ -32,7 +32,7 @@ jobs:
         run: |
           # -O everywhere: wget writes 'name.1' rather than overwriting, and
           # the repo root already has a pyproject.toml that ruff would read.
-          url=https://raw.githubusercontent.com/spack/spack-packages/7edf5a3a9ec9b8bfd25ea388b8c7b3df062bc3cb
+          url=https://raw.githubusercontent.com/spack/spack-packages/ec33c8840c64bd5449f34d9f42fd96790ddb7569
           wget -O requirements.txt $url/.github/workflows/requirements/style/requirements.txt
           wget -O pyproject.toml $url/pyproject.toml
           wget -O style_check.sh $url/.ci/style_check.sh

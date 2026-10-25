@@ -15,8 +15,8 @@ concurrency:
 
 jobs:
   fenics-dolfinx:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read
@@ -40,8 +40,8 @@ jobs:
           test-mode: ${{ matrix.version == '0.8' && 'dependencies' || 'root' }}
 
   py-fenics-dolfinx:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read
