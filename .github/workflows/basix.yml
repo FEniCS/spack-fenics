@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %gcc@13", "build_type=Developer %clang@18"]
+        spec: ["build_type=Developer %gcc@15", "build_type=Developer %clang@21"]
 
     steps:
       - uses: actions/checkout@v7
@@ -49,7 +49,7 @@ jobs:
       matrix:
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
         # Make sure fenics-basix and py-fenics-basix build with same compiler/ABI.
-        spec: ["+ufl %gcc@13 ^fenics-basix%gcc@13", "+ufl %clang@18 ^fenics-basix%clang@18"]
+        spec: ["+ufl %gcc@15 ^fenics-basix%gcc@15", "+ufl %clang@21 ^fenics-basix%clang@21"]
 
     steps:
       - uses: actions/checkout@v7

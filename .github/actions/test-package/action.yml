@@ -42,10 +42,10 @@ runs:
         SPEC: ${{ inputs.spec }}
         DEBIAN_FRONTEND: noninteractive
       run: |
-        # libclang-rt-18-dev is only a *recommend* of clang-18, so with
-        # recommends off any -fsanitize= link fails without it.
+        # Install the default Clang sanitizer runtime explicitly: with
+        # recommends off, -fsanitize= links otherwise fail.
         case "$SPEC" in
-          *clang@18*) clang="clang-18 libclang-rt-18-dev" ;;
+          *clang*) clang="clang libclang-rt-dev" ;;
           *) clang="" ;;
         esac
         # Root inside the container, but not on a bare runner.
@@ -53,9 +53,8 @@ runs:
         $sudo apt-get -y update
         # Drops 65 of 174 packages, none of them build inputs: spack builds
         # its own make, curl, libffi and so on.
-        # Keep GCC 13 available for the matrix alongside Ubuntu's default GCC.
         $sudo apt-get install -y --no-install-recommends \
-          file bzip2 ca-certificates g++ gcc gfortran g++-13 gcc-13 gfortran-13 git gzip lsb-release \
+          file bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release \
           patch python3 tar unzip xz-utils zstd $clang
         $sudo rm -rf /var/lib/apt/lists/*
 
