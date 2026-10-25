@@ -33,11 +33,6 @@ outputs:
   env-path:
     description: 'Directory of the Spack environment holding the built spec.'
     value: ${{ inputs.env-path }}
-  root-hash:
-    description: >-
-      Hash of the first concretized root, for staging and testing the package
-      under test. List that package first in 'spec'.
-    value: ${{ steps.concretize.outputs.hash }}
 runs:
   using: "composite"
   steps:
@@ -156,9 +151,7 @@ runs:
         # Tests run against the FIRST concretized root, so the package under
         # test must be listed first. A mis-ordered input would otherwise test
         # the wrong package and still go green, so compare the root against
-        # the first name in the input and fail loudly on a mismatch. The hash
-        # is exported in every mode, including 'none', where it is what
-        # 'spack patch "/$ROOT_HASH"' needs.
+        # the first name in the input and fail loudly on a mismatch.
         root=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; r = ev.active_environment().concrete_roots()[0]; print(r.dag_hash(), r.name, r.format("{name}{@version}"))')
         read -r root_hash root_name root_desc <<<"$root"
         want=${SPEC%%[[:space:]]*}
@@ -177,13 +170,14 @@ runs:
         ENV_DIR: ${{ inputs.env-path }}
         TEST_MODE: ${{ inputs.test-mode }}
       run: |
-        args=(--deprecated -j "$(nproc)" --log-format junit --log-file log.xml)
+        base=(--deprecated -j "$(nproc)")
+        args=("${base[@]}" --log-format junit --log-file log.xml)
         case "$TEST_MODE" in
           dependencies)
             # The root may come from the cache, but its test dependencies
             # are still needed by 'spack test run'. --test selects test-only
             # edges; --only dependencies keeps the root out of this install.
-            spack -e "$ENV_DIR" install --deprecated -j "$(nproc)" \
+            spack -e "$ENV_DIR" install "${base[@]}" \
               --test=root --only dependencies --include-build-deps
             ;;
           root)
@@ -232,12 +226,8 @@ runs:
       shell: bash
       env:
         SPEC: ${{ inputs.spec }}
-        TEST_MODE: ${{ inputs.test-mode }}
       run: |
         slug=$(printf '%s' "$SPEC" | tr -cs 'A-Za-z0-9.@+' '-' | sed 's/^-//; s/-$//')
-        if [ "$TEST_MODE" = root ]; then
-          slug="$slug-test-root"
-        fi
         echo "name=$slug" >> "$GITHUB_OUTPUT"
 
     - name: Upload log

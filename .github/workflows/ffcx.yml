@@ -31,8 +31,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: spack-fenics
-      - id: spack
-        uses: ./spack-fenics/.github/actions/test-package
+      - uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-ufcx@${{ matrix.version }} %gcc@13
@@ -54,8 +53,7 @@ jobs:
         with:
           path: spack-fenics
       # NOTE: Python built with GCC, otherwise cffi can try for an odd compiler.
-      - id: spack
-        uses: ./spack-fenics/.github/actions/test-package
+      - uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@13

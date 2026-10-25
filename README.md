@@ -99,12 +99,9 @@ skipped for forked pull requests, which have no write access.
 
 List the package under test first in the `spec` input. The Concretize step
 checks the first concretized root against that first name and fails the job on
-a mismatch, so a mis-ordered spec cannot quietly test the wrong package. The
-action exports `env-path` and that root's `root-hash`; use
-`spack patch "/$ROOT_HASH"` when fetching source for manual tests that need
-recipe patches, since `spack stage` only extracts it. Each build uploads
-`log.xml`, `spack.yaml` and `spack.lock` for diagnosis and reproduction, and a
-failing `spack test run` dumps its full log.
+a mismatch, so a mis-ordered spec cannot quietly test the wrong package. Each
+build uploads `log.xml`, `spack.yaml` and `spack.lock` for diagnosis and
+reproduction, and a failing `spack test run` dumps its full log.
 
 `test-mode` selects what happens to the root's own tests:
 
