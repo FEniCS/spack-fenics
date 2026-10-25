@@ -179,6 +179,9 @@ class PyFenicsDolfinx(PythonPackage):
         # Python 3.14 changed reference-count semantics.
         if self.spec.satisfies("@0.9:0.10 ^python@3.14:"):
             excluded.append("test_mpi_comm_refcount")
+        # Excluded by the previous CI for every release from 0.10.
+        if self.spec.satisfies("@0.10:"):
+            excluded.append("test_symmetry_interior_facet_assembly[mesh1]")
         # Exact PETSc matrix equality is sensitive to the BLAS implementation.
         if self.spec.satisfies("@0.9:0.11 ^netlib-lapack"):
             excluded.append("test_matrix_assembly_rectangular")
