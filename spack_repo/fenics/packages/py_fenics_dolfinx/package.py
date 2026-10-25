@@ -66,6 +66,12 @@ class PyFenicsDolfinx(PythonPackage):
         depends_on(f"py-fenics-basix@{ver} +ufl", type=("build", "run"), when=f"@{ver}")
         depends_on(f"py-fenics-ffcx@{ver}", type=("build", "run"), when=f"@{ver}")
 
+    # ABI compatibility to fenics-basix and nanobind bindings of py-fenics-basix
+    for _cxx in ("gcc", "llvm", "apple-clang", "intel-oneapi-compilers"):
+        with when(f"%cxx={_cxx}"):
+            depends_on(f"fenics-dolfinx %cxx={_cxx}")
+            depends_on(f"py-fenics-basix %cxx={_cxx}", type=("build", "run"))
+
     for ufl_ver, ver in [
         ("main", "main"),
         ("2026.1", "0.11"),
