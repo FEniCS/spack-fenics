@@ -152,8 +152,8 @@ runs:
         # test must be listed first. A mis-ordered input would otherwise test
         # the wrong package and still go green, so compare the root against
         # the first name in the input and fail loudly on a mismatch.
-        root=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; r = ev.active_environment().concrete_roots()[0]; print(r.dag_hash(), r.name, r.format("{name}{@version}"))')
-        read -r root_hash root_name root_desc <<<"$root"
+        root=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; r = ev.active_environment().concrete_roots()[0]; print(r.dag_hash(), r.name, int(r.satisfies("^openmpi")), r.format("{name}{@version}"))')
+        read -r root_hash root_name has_openmpi root_desc <<<"$root"
         want=${SPEC%%[[:space:]]*}
         want=${want%%[@%+~^=]*}
         if [ "$want" != "$root_name" ]; then
@@ -163,6 +163,15 @@ runs:
         fi
         echo "Root under test: $root_desc (/$root_hash)"
         echo "hash=$root_hash" >> "$GITHUB_OUTPUT"
+        # The recipes pass MPIEXEC_PREFLAGS to mpiexec. Open MPI refuses to
+        # run as root, which container jobs are, or to start more ranks than
+        # cores; MPICH needs neither flag. A caller's own value wins.
+        # NOTE: '--oversubscribe' is deprecated from Open MPI 5 (PRRTE warns
+        # and maps it to '--map-by :oversubscribe'). It still works on the
+        # 5.0.x that Spack concretizes; switch spelling if removed.
+        if [ "$has_openmpi" = 1 ] && [ -z "${MPIEXEC_PREFLAGS+set}" ]; then
+          echo "MPIEXEC_PREFLAGS=--allow-run-as-root --oversubscribe" >> "$GITHUB_ENV"
+        fi
 
     - name: Install
       shell: spack-bash {0}
@@ -174,11 +183,17 @@ runs:
         args=("${base[@]}" --log-format junit --log-file log.xml)
         case "$TEST_MODE" in
           dependencies)
-            # The root may come from the cache, but its test dependencies
-            # are still needed by 'spack test run'. --test selects test-only
-            # edges; --only dependencies keeps the root out of this install.
-            spack -e "$ENV_DIR" install "${base[@]}" \
-              --test=root --only dependencies --include-build-deps
+            # The root may come from the cache, but 'spack test run' needs
+            # its test dependencies. Install just those, by hash: a cached
+            # root brings none of them, and --include-build-deps would pull
+            # in the build tools of every cached package in the DAG.
+            test_deps=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; r = ev.active_environment().concrete_roots()[0]; print(" ".join("/" + d.dag_hash() for d in r.dependencies(deptype="test")))')
+            # Guarded: with no specs, 'spack install' installs the whole env.
+            if [ -n "$test_deps" ]; then
+              # $test_deps unquoted: one hash per word.
+              spack -e "$ENV_DIR" install "${base[@]}" \
+                --log-format junit --log-file log-deps.xml $test_deps
+            fi
             ;;
           root)
             args+=(--test=root --use-buildcache=package:never,dependencies:auto)
@@ -198,14 +213,33 @@ runs:
         spack -v -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
         || { spack -e "$ENV_DIR" test results -l; exit 1; }
 
+    # --test=root puts the root's test dependencies in its DAG, and so in its
+    # hash: the root tested above is never the one other jobs concretize.
+    # Install the root as they see it, from a copy of the env concretized
+    # without tests, so the cache holds that one too. Most of its DAG is
+    # already installed. Skipped when testing failed.
+    - name: Install root for the cache
+      if: ${{ inputs.test-mode != 'none' }}
+      shell: spack-bash {0}
+      env:
+        ENV_DIR: ${{ inputs.env-path }}
+      run: |
+        cache_env="${ENV_DIR%/}-cache"
+        spack env create -d "$cache_env" "$ENV_DIR/spack.yaml"
+        spack -e "$cache_env" concretize --deprecated -j "$(nproc)"
+        spack -e "$cache_env" install --deprecated -j "$(nproc)" \
+          --log-format junit --log-file log-cache.xml
+
     # always(), not success() or !cancelled(): a package that built is worth
     # caching however the job ended, and cancelled runs are where the partial
-    # build saves the most time on the retry. Forked PRs get a read-only
+    # build saves the most time on the retry. Skipped only when Concretize
+    # did not finish, as nothing was built. Forked PRs get a read-only
     # GITHUB_TOKEN whatever 'permissions' says, so the push would 401; reads
     # are anonymous, so they still take from the cache.
     - name: Push packages to cache
       if: >-
-        ${{ always() && (github.event_name != 'pull_request'
+        ${{ always() && steps.concretize.outcome == 'success'
+        && (github.event_name != 'pull_request'
         || github.event.pull_request.head.repo.full_name == github.repository) }}
       shell: spack-bash {0}
       env:
@@ -214,9 +248,16 @@ runs:
       # snapshot, so concurrent jobs clobber and race it - a tag listed
       # before its manifest is readable aborts the step. Nothing reads it:
       # OCI installs fetch by tag from the spec hash, and reuse is off.
-      run: >
-        spack -e "$ENV_DIR" buildcache push --base-image ubuntu:24.04
-        --allow-missing push-buildcache
+      # Both envs, so the tested root and its test dependencies are cached
+      # as well as the untested root.
+      run: |
+        status=0
+        for dir in "$ENV_DIR" "${ENV_DIR%/}-cache"; do
+          [ -d "$dir" ] || continue
+          spack -e "$dir" buildcache push --base-image ubuntu:24.04 \
+            --allow-missing push-buildcache || status=1
+        done
+        exit "$status"
 
     # Names must be unique within a run, so squash the spec's punctuation.
     # Not truncated: the distinguishing variants sit at the tail.
@@ -237,6 +278,8 @@ runs:
         name: ${{ steps.log.outputs.name }}-log
         path: |
           log.xml
+          log-deps.xml
+          log-cache.xml
           ${{ inputs.env-path }}/spack.yaml
           ${{ inputs.env-path }}/spack.lock
         retention-days: 7

@@ -113,16 +113,17 @@ reproduction, and a failing `spack test run` dumps its full log.
 
 In both testing modes the action then runs `spack test run` against the exact
 installed root. Dependencies may still come from the build cache in either
-mode; neither mode tests the dependencies themselves.
+mode; neither mode tests the dependencies themselves. Testing adds the root's
+test dependencies to its hash, so a tested root is not the one other jobs
+concretize. After the tests pass, the action also installs the root from a copy
+of the environment concretized without tests, and pushes both to the cache.
 
 Spack uses its clean build environment, which passes `MPIEXEC_PREFLAGS`
-through untouched. DOLFINx callers use it to supply optional MPI launcher
-arguments, parsed with shell quoting and forwarded to CMake's MPI tests and
-the Python suite's MPI launcher. The Open MPI container jobs set
-`--allow-run-as-root --oversubscribe`; MPICH jobs leave the flags empty. The
-variable is optional and nothing validates it: if it is unset or misspelt the
-launcher simply gets no flags, and an Open MPI job then fails when `mpiexec`
-refuses to run as root.
+through untouched. The DOLFINx recipes parse it with shell quoting and forward
+it to CMake's MPI tests and the Python suite's MPI launcher. When the root's
+DAG contains Open MPI, the action sets it to `--allow-run-as-root
+--oversubscribe`, since container jobs run as root; a value the caller sets
+itself takes precedence, and MPICH jobs get no flags.
 
 The package matrices run tests only through Spack. Suite selection, xdist
 scheduling, compatibility exclusions and DOLFINx Python MPI runs belong to the

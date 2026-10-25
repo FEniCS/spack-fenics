@@ -27,14 +27,6 @@ jobs:
         # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
         spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
-    env:
-      # Read by the recipes' install-time tests and passed to the MPI
-      # launcher; see the comments there. Only Open MPI needs them in a
-      # root container, so MPICH rows leave them empty.
-      # NOTE: '--oversubscribe' is deprecated from Open MPI 5 (PRRTE
-      # warns and maps it to '--map-by :oversubscribe'). It still works
-      # on the 5.0.x that Spack concretizes; switch spelling if removed.
-      MPIEXEC_PREFLAGS: ${{ contains(matrix.spec, '^openmpi') && '--allow-run-as-root --oversubscribe' || '' }}
 
     steps:
       - uses: actions/checkout@v7
