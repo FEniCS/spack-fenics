@@ -69,8 +69,8 @@ runs:
       uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
         spack_ref: v1.2.2
-        # spack/spack-packages @ 2026-10-14
-        packages_ref: 09a7cc27b5d54c9f286cf645a11ae7d95bf38717
+        # spack/spack-packages @ 2026-10-23
+        packages_ref: 7edf5a3a9ec9b8bfd25ea388b8c7b3df062bc3cb
 
     # Job-wide, not step-local: mirrors.yaml stores these names, and spack
     # re-resolves them in every later install step. Not GITHUB_*, which
