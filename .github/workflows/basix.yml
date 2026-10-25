@@ -31,12 +31,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: spack-fenics
-      - id: spack
-        uses: ./spack-fenics/.github/actions/test-package
+      - uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          test: true
+          test-mode: root
 
   py-fenics-basix:
     runs-on: ubuntu-24.04
@@ -56,28 +55,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: spack-fenics
-      - id: spack
-        uses: ./spack-fenics/.github/actions/test-package
+      - uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           spec: py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          test: false
-      - name: Run tests (not 0.8)
-        if: ${{ matrix.version != '0.8' }}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
-          spack install --add py-pytest py-sympy py-pytest-xdist
-          spack stage py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          python -m pytest -n auto test/
-      # NOTE: 0.8 has test_all_elements_included broken
-      - name: Run tests (0.8)
-        if: ${{ matrix.version == '0.8' }}
-        shell: spack-bash {0}
-        run: |
-          spack env activate ${{ steps.spack.outputs.env-path }}
-          spack install --deprecated --add py-pytest py-sympy py-pytest-xdist
-          spack stage --deprecated py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          spack cd py-fenics-basix@${{ matrix.version }} ${{ matrix.spec }}
-          python -m pytest -n auto -k "not test_all_elements_included" test/
+          test-mode: root

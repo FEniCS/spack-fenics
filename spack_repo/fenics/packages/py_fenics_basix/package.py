@@ -27,6 +27,12 @@ class PyFenicsBasix(PythonPackage):
     with default_args(deprecated=True):
         version("0.8.0", sha256="b299af82daf8fa3e4845e17f202491fe71b313bf6ab64c767a5287190b3dd7fe")
 
+    # Basix 0.8 wraps nanobind enums in a Python Enum, so int() on any public
+    # enum raises TypeError against nanobind 2.x. Patches installed library
+    # code, not only tests; 0.9 dropped the wrapper upstream. See the patch
+    # header for the full rationale.
+    patch("enum-int.patch", when="@0.8")
+
     # CMake build type
     variant(
         "build_type",
@@ -63,15 +69,19 @@ class PyFenicsBasix(PythonPackage):
     depends_on("py-scikit-build-core+pyproject@0.10:", when="@0.10:", type="build")
     depends_on("py-scikit-build-core+pyproject@0.5.0:", when="@0.8:0.9", type="build")
 
-    with when("+ufl"):
-        for ufl_ver, ver in [
-            ("main", "main"),
-            ("2026.1", "0.11"),
-            ("2025.2", "0.10"),
-            ("2024.2", "0.9"),
-            ("2024.1", "0.8"),
-        ]:
-            depends_on(f"py-fenics-ufl@{ufl_ver}", type="run", when=f"@{ver}")
+    for ufl_ver, ver in [
+        ("main", "main"),
+        ("2026.1", "0.11"),
+        ("2025.2", "0.10"),
+        ("2024.2", "0.9"),
+        ("2024.1", "0.8"),
+    ]:
+        depends_on(f"py-fenics-ufl@{ufl_ver}", type="run", when=f"@{ver} +ufl")
+        depends_on(f"py-fenics-ufl@{ufl_ver}", type="test", when=f"@{ver}")
+    depends_on("py-pytest", type="test")
+    depends_on("py-pytest-xdist", type="test")
+    depends_on("py-sympy", type="test")
+    # No scipy or matplotlib: nothing under test/ imports them in 0.8-0.11.
 
     def config_settings(self, spec, prefix):
         return {
@@ -81,3 +91,45 @@ class PyFenicsBasix(PythonPackage):
         }
 
     build_directory = "python"
+
+    import_modules = ("basix",)
+    # Spack's install-time import check (test_imports) runs without the
+    # install prefix on PYTHONPATH, so it cannot find the package.
+    # check_install imports the installed package instead, and
+    # test_imports still runs as a stand-alone test.
+    install_time_test_callbacks = ()
+
+    def installed_module_env(self):
+        """Environment that makes the just-installed modules importable.
+
+        Spack does not put the prefix on PYTHONPATH at build time, so install
+        tests would import the staged sources instead. Reuse the run-time hook
+        of python (or python-venv), which now has the installed files to find.
+        """
+        env = EnvironmentModifications()
+        self.python_spec.package.setup_dependent_run_environment(env, self.spec)
+        return env
+
+    @run_after("install")
+    @on_package_attributes(run_tests=True)
+    def check_install(self):
+        """Run the upstream Python test suite against installed Basix."""
+        python = self.spec["python"].command
+        python.add_default_envmod(self.installed_module_env())
+        args = ["-m", "pytest", "-v", "--import-mode=importlib", "-n", str(make_jobs), "test"]
+        if self.spec.satisfies("@0.8"):
+            args.extend(["-k", "not test_all_elements_included"])
+        with working_dir(self.stage.source_path):
+            python(*args)
+
+    @run_after("install")
+    def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
+        cache_extra_test_sources(self, "demo/python/demo_create_and_tabulate.py")
+
+    def test_create_and_tabulate(self):
+        """Run the upstream create-and-tabulate demo."""
+        demo = join_path(
+            self.test_suite.current_test_cache_dir, "demo", "python", "demo_create_and_tabulate.py"
+        )
+        self.spec["python"].command(demo)

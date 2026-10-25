@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.python import PythonPackage
 
 from spack.package import *
@@ -52,11 +54,58 @@ class PyFenicsFfcx(PythonPackage):
     depends_on("py-fenics-basix@0.8", type=("build", "run"), when="@0.8")
 
     depends_on("py-pytest@6:", type="test")
+    depends_on("py-pytest-xdist", type="test")
     depends_on("py-sympy", type="test")
+    depends_on("py-numba", type="test")
+    depends_on("py-pygraphviz", when="@0.8", type="test")
+
+    import_modules = ("ffcx",)
+    # Spack's install-time import check (test_imports) runs without the
+    # install prefix on PYTHONPATH, so it cannot find the package.
+    # check_install imports the installed package instead, and
+    # test_imports still runs as a stand-alone test.
+    install_time_test_callbacks = ()
+
+    def installed_module_env(self):
+        """Environment that makes the just-installed modules importable.
+
+        Spack does not put the prefix on PYTHONPATH at build time, so install
+        tests would import the staged sources instead. Reuse the run-time hook
+        of python (or python-venv), which now has the installed files to find.
+        """
+        env = EnvironmentModifications()
+        self.python_spec.package.setup_dependent_run_environment(env, self.spec)
+        return env
 
     @run_after("install")
     @on_package_attributes(run_tests=True)
-    def check_build(self):
-        with working_dir("test"):
-            pytest = which("pytest", required=True)
-            pytest("--ignore=test_cmdline.py")
+    def check_install(self):
+        """Run the upstream test suite against installed FFCx."""
+        python = self.spec["python"].command
+        python.add_default_envmod(self.installed_module_env())
+        # test_cmdline.py invokes the installed 'ffcx' console script.
+        entries = [join_path(self.prefix, "bin"), os.environ.get("PATH", "")]
+        python.add_default_env("PATH", os.pathsep.join(e for e in entries if e))
+        with working_dir(join_path(self.stage.source_path, "test")):
+            # Keep tests generating the same module on one xdist worker.
+            python(
+                "-m",
+                "pytest",
+                "-v",
+                "--import-mode=append",
+                "-n",
+                str(make_jobs),
+                "--dist",
+                "loadfile",
+                ".",
+            )
+
+    @run_after("install")
+    def cache_test_sources(self):
+        """Cache upstream demo sources for standalone Spack tests."""
+        cache_extra_test_sources(self, "demo/Poisson1D.py")
+
+    def test_poisson(self):
+        """Compile the upstream one-dimensional Poisson form."""
+        demo = join_path(self.test_suite.current_test_cache_dir, "demo", "Poisson1D.py")
+        self.spec["python"].command("-m", "ffcx", demo)

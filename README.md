@@ -89,6 +89,80 @@ special compilers to build fenics-dolfinx):
     source spack-build-env.sh
     # Execute e.g. cmake, should use Spack's compiler-wrapper 
 
+## CI actions
+
+A package job is a single call to the shared `test-package` action: it builds
+a Spack environment, runs the package's tests, and pushes what it built to the
+build cache. Nothing else belongs in the job. The cache push runs whatever the
+outcome, so a failed or cancelled job still caches what it built, and it is
+skipped for forked pull requests, which have no write access.
+
+List the package under test first in the `spec` input. The Concretize step
+checks the first concretized root against that first name and fails the job on
+a mismatch, so a mis-ordered spec cannot quietly test the wrong package. Each
+build uploads `log.xml`, `spack.yaml` and `spack.lock` for diagnosis and
+reproduction, and a failing `spack test run` dumps its full log.
+
+`test-mode` selects what happens to the root's own tests:
+
+| Mode | Effect |
+| --- | --- |
+| `none` (default) | Plain installation; no tests, no test dependencies. |
+| `dependencies` | Install the root's test dependencies so `spack test run` works, but leave the root free to come from the build cache. |
+| `root` | Also build the root from source and run its install-time tests with `spack install --test=root`. |
+
+In both testing modes the action then runs `spack test run` against the exact
+installed root. Dependencies may still come from the build cache in either
+mode; neither mode tests the dependencies themselves. Testing adds the root's
+test dependencies to its hash, so a tested root is not the one other jobs
+concretize. After the tests pass, the action also installs the root from a copy
+of the environment concretized without tests, and pushes both to the cache.
+
+Spack uses its clean build environment, which passes `MPIEXEC_PREFLAGS`
+through untouched. The DOLFINx recipes parse it with shell quoting and forward
+it to CMake's MPI tests and the Python suite's MPI launcher. When the root's
+DAG contains Open MPI, the action sets it to `--allow-run-as-root
+--oversubscribe`, since container jobs run as root; a value the caller sets
+itself takes precedence, and MPICH jobs get no flags.
+
+The package matrices run tests only through Spack. Suite selection, xdist
+scheduling, compatibility exclusions and DOLFINx Python MPI runs belong to the
+recipes; runners do not invoke pytest, CTest or MPI test commands directly.
+DOLFINx and FFCx 0.8 use `test-mode: dependencies`, so they keep stand-alone
+coverage while their full suites stay excluded.
+
+The two kinds of recipe test have different scopes:
+
+| Package | Install-time tests (`--test=root`) | Stand-alone tests (`spack test run`) |
+| --- | --- | --- |
+| C++ Basix | Upstream CMake installation check | Build and run the create-and-tabulate demo |
+| C++ DOLFINx | C++ unit suite through CTest | Build and run the Poisson demo with PETSc, or interpolation/IO demo without PETSc |
+| Python Basix | Upstream pytest suite | Run the create-and-tabulate demo |
+| Python DOLFINx | Upstream Python unit suite | Run the matrix-free Poisson demo |
+| Python FFCx | Upstream pytest suite | Compile the one-dimensional Poisson demo |
+| Python UFL | Upstream pytest suite | Run the Poisson form example |
+
+Both kinds of test build against the spec as installed. The C++ recipes reuse
+Spack's standard CMake arguments, so a test configures the way the library
+did: same `build_type`, same generator, and CMake's package registry stays
+out of `find_package`, which would otherwise let a stale user build tree
+answer in place of the installed package. Two of those defaults are replaced
+— the standard `CMAKE_PREFIX_PATH` does not contain the install prefix the
+tests link against, and the standard `CMAKE_INSTALL_PREFIX` points at the
+package under test, which a throwaway build must never write into.
+
+A spec's `cflags` and `cxxflags` reach the install-time checks but not the
+stand-alone demos: Spack populates them from the build environment, which a
+test context does not set up. The demos name the spec's compiler explicitly
+and use it directly rather than through Spack's wrapper, which is what an
+ordinary consumer of the installed CMake package would do.
+
+Stand-alone tests reuse files from the matching upstream release. The recipes
+save these files during installation with `cache_extra_test_sources`, so the
+tests run against an installed package with no source or build directory left.
+No custom smoke-test programs are maintained in this repository. Python
+packages also inherit Spack's import checks.
+
 ## Developer notes
 
 Diffing against an upstream `builtin` package set:

@@ -1,0 +1,44 @@
+Skip the Numba/CFFI complex kernel tests from cffi 1.17.
+
+Numba cannot type CFFI complex arguments: see map_type in
+numba/core/typing/cffi_utils.py. From cffi 1.17 the complex ctypes are named
+_cffi_{float,double}_complex_t, which that mapping does not know, so the test
+errors rather than failing cleanly.
+
+Backport of the upstream condition from DOLFINx commit aa9570ddf8
+(FEniCS/dolfinx#4397), which replaced the narrower 1.17/2.0.0 range with an
+open-ended one. Module-level 'cffi = pytest.importorskip("cffi")' already
+binds the name in every release patched here.
+
+Applies to 0.10 and 0.11, which carry the pre-fix condition.
+
+diff --git a/python/test/unit/fem/test_custom_assembler.py b/python/test/unit/fem/test_custom_assembler.py
+index 5809f20f96..49f3d6078a 100644
+--- a/python/test/unit/fem/test_custom_assembler.py
++++ b/python/test/unit/fem/test_custom_assembler.py
+@@ -116,8 +116,10 @@ def assemble_vector_ufc(b, kernel, mesh, dofmap, num_cells, dtype):
+             marks=[
+                 pytest.mark.xfail_win32_complex,
+                 pytest.mark.skipif(
+-                    cffi.__version_info__ > (1, 16, 99) and cffi.__version_info__ <= (2, 0, 0),
+-                    reason="bug in cffi 1.17.0/1 and 2.0.0 for complex",
++                    cffi.__version_info__ >= (1, 17),
++                    reason="Numba cannot type CFFI complex arguments, see map_type in "
++                    "numba/core/typing/cffi_utils.py. From cffi 1.17 the complex ctypes "
++                    "are named _cffi_{float,double}_complex_t.",
+                 ),
+             ],
+         ),
+@@ -126,8 +128,10 @@ def assemble_vector_ufc(b, kernel, mesh, dofmap, num_cells, dtype):
+             marks=[
+                 pytest.mark.xfail_win32_complex,
+                 pytest.mark.skipif(
+-                    cffi.__version_info__ > (1, 16, 99) and cffi.__version_info__ <= (2, 0, 0),
+-                    reason="bug in cffi 1.17.0/1 and 2.0.0 for complex",
++                    cffi.__version_info__ >= (1, 17),
++                    reason="Numba cannot type CFFI complex arguments, see map_type in "
++                    "numba/core/typing/cffi_utils.py. From cffi 1.17 the complex ctypes "
++                    "are named _cffi_{float,double}_complex_t.",
+                 ),
+             ],
+         ),

@@ -1,9 +1,21 @@
 name: test-package
-description: 'Builds a spack package from given spack-spec'
+description: >-
+  Build a Spack package from the given spec, optionally run its tests, and
+  publish what was built to the build cache.
 inputs:
   spec:
-    description: 'Spack spec syntax; list the package under test first.'
+    description: >-
+      Spack spec syntax. List the package under test first: the Concretize
+      step checks that the first root matches the first name here.
     required: true
+  test-mode:
+    description: >-
+      What to do about the root's tests. 'none': plain install. 'dependencies':
+      install the root's test dependencies so 'spack test run' works, but do
+      not run its install-time tests, leaving the root free to come from the
+      cache. 'root': also build the root from source and run its install-time
+      tests. Neither mode tests the dependencies themselves.
+    default: 'none'
   env-path:
     description: >-
       Directory for the Spack environment. Left in place for the rest of the
@@ -16,9 +28,6 @@ inputs:
     description: >-
       Token for the ghcr.io build cache; pass secrets.GITHUB_TOKEN. Exported
       as GHCR_TOKEN, since later install steps re-read the mirror.
-    required: true
-  test: # TODO: remove once all packages support testing
-    description: 'Run tests'
     required: true
 outputs:
   env-path:
@@ -55,8 +64,8 @@ runs:
       uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
         spack_ref: v1.2.2
-        # spack/spack-packages @ 2026-08-17
-        packages_ref: 1ccf95574922e2a7f7ef0351bd67758ad4634b7a
+        # spack/spack-packages @ 2026-10-23
+        packages_ref: 7edf5a3a9ec9b8bfd25ea388b8c7b3df062bc3cb
 
     # Job-wide, not step-local: mirrors.yaml stores these names, and spack
     # re-resolves them in every later install step. Not GITHUB_*, which
@@ -124,47 +133,113 @@ runs:
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-        RUN_TESTS: ${{ inputs.test }}
+        TEST_MODE: ${{ inputs.test-mode }}
+        SPEC: ${{ inputs.spec }}
       run: |
         spack -e "$ENV_DIR" config add concretizer:unify:true
         # Keep the buildcache out of the solve: with reuse on, hashes depend
-        # on what the mirror happens to hold, and 66 jobs are pushing to it.
+        # on what the mirror happens to hold, and concurrent jobs push to it.
         # Binaries are still installed on a hash match.
         spack -e "$ENV_DIR" config add concretizer:reuse:false
         args=(--deprecated -j "$(nproc)")
-        if [ "$RUN_TESTS" = true ]; then
-          args+=(--test=root)
-        fi
+        case "$TEST_MODE" in
+          none) ;;
+          dependencies|root) args+=(--test=root) ;;
+          *) echo "::error::Invalid test-mode: $TEST_MODE"; exit 1 ;;
+        esac
         spack -e "$ENV_DIR" concretize "${args[@]}"
-        root_hash=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; print(ev.active_environment().concrete_roots()[0].dag_hash())')
-        echo "root-hash=$root_hash" >> "$GITHUB_OUTPUT"
+        # Tests run against the FIRST concretized root, so the package under
+        # test must be listed first. A mis-ordered input would otherwise test
+        # the wrong package and still go green, so compare the root against
+        # the first name in the input and fail loudly on a mismatch.
+        root=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; r = ev.active_environment().concrete_roots()[0]; print(r.dag_hash(), r.name, int(r.satisfies("^openmpi")), r.format("{name}{@version}"))')
+        read -r root_hash root_name has_openmpi root_desc <<<"$root"
+        want=${SPEC%%[[:space:]]*}
+        want=${want%%[@%+~^=]*}
+        if [ "$want" != "$root_name" ]; then
+          echo "::error::List the package under test first in 'spec':" \
+               "first root is '$root_name', but 'spec' starts with '$want'"
+          exit 1
+        fi
+        echo "Root under test: $root_desc (/$root_hash)"
+        echo "hash=$root_hash" >> "$GITHUB_OUTPUT"
+        # The recipes pass MPIEXEC_PREFLAGS to mpiexec. Open MPI refuses to
+        # run as root, which container jobs are, or to start more ranks than
+        # cores; MPICH needs neither flag. A caller's own value wins.
+        # NOTE: '--oversubscribe' is deprecated from Open MPI 5 (PRRTE warns
+        # and maps it to '--map-by :oversubscribe'). It still works on the
+        # 5.0.x that Spack concretizes; switch spelling if removed.
+        if [ "$has_openmpi" = 1 ] && [ -z "${MPIEXEC_PREFLAGS+set}" ]; then
+          echo "MPIEXEC_PREFLAGS=--allow-run-as-root --oversubscribe" >> "$GITHUB_ENV"
+        fi
 
     - name: Install
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-      run: >
-        spack -e "$ENV_DIR" install --deprecated -j $(nproc)
-        --use-buildcache package:never
-        ${{ inputs.test == 'true' && '--test=root' || '' }}
-        --log-format junit
-        --log-file log.xml
+        TEST_MODE: ${{ inputs.test-mode }}
+      run: |
+        base=(--deprecated -j "$(nproc)")
+        args=("${base[@]}" --log-format junit --log-file log.xml)
+        case "$TEST_MODE" in
+          dependencies)
+            # The root may come from the cache, but 'spack test run' needs
+            # its test dependencies. Install just those, by hash: a cached
+            # root brings none of them, and --include-build-deps would pull
+            # in the build tools of every cached package in the DAG.
+            test_deps=$(spack -e "$ENV_DIR" python -c 'import spack.environment as ev; r = ev.active_environment().concrete_roots()[0]; print(" ".join("/" + d.dag_hash() for d in r.dependencies(deptype="test")))')
+            # Guarded: with no specs, 'spack install' installs the whole env.
+            if [ -n "$test_deps" ]; then
+              # $test_deps unquoted: one hash per word.
+              spack -e "$ENV_DIR" install "${base[@]}" \
+                --log-format junit --log-file log-deps.xml $test_deps
+            fi
+            ;;
+          root)
+            args+=(--test=root --use-buildcache=package:never,dependencies:auto)
+            ;;
+        esac
+        spack -e "$ENV_DIR" install "${args[@]}"
 
-    - name: Test
-      if: ${{ inputs.test == 'true' }}
+    - name: Run stand-alone tests
+      if: ${{ inputs.test-mode != 'none' }}
       shell: spack-bash {0}
       env:
         ENV_DIR: ${{ inputs.env-path }}
-        ROOT_HASH: ${{ steps.concretize.outputs.root-hash }}
-      run: >
-        spack -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
+        ROOT_HASH: ${{ steps.concretize.outputs.hash }}
+      # On failure dump the full test log; the summary alone rarely says why
+      # a build or demo run failed.
+      run: >-
+        spack -v -e "$ENV_DIR" test run --fail-fast "/$ROOT_HASH"
+        || { spack -e "$ENV_DIR" test results -l; exit 1; }
 
-    # Forked PRs get a read-only GITHUB_TOKEN whatever 'permissions' says,
-    # so the push would 401 on a step that tests nothing. Reads are
-    # anonymous, so they still take from the cache.
+    # --test=root puts the root's test dependencies in its DAG, and so in its
+    # hash: the root tested above is never the one other jobs concretize.
+    # Install the root as they see it, from a copy of the env concretized
+    # without tests, so the cache holds that one too. Most of its DAG is
+    # already installed. Skipped when testing failed.
+    - name: Install root for the cache
+      if: ${{ inputs.test-mode != 'none' }}
+      shell: spack-bash {0}
+      env:
+        ENV_DIR: ${{ inputs.env-path }}
+      run: |
+        cache_env="${ENV_DIR%/}-cache"
+        spack env create -d "$cache_env" "$ENV_DIR/spack.yaml"
+        spack -e "$cache_env" concretize --deprecated -j "$(nproc)"
+        spack -e "$cache_env" install --deprecated -j "$(nproc)" \
+          --log-format junit --log-file log-cache.xml
+
+    # always(), not success() or !cancelled(): a package that built is worth
+    # caching however the job ended, and cancelled runs are where the partial
+    # build saves the most time on the retry. Skipped only when Concretize
+    # did not finish, as nothing was built. Forked PRs get a read-only
+    # GITHUB_TOKEN whatever 'permissions' says, so the push would 401; reads
+    # are anonymous, so they still take from the cache.
     - name: Push packages to cache
       if: >-
-        ${{ !cancelled() && (github.event_name != 'pull_request'
+        ${{ always() && steps.concretize.outcome == 'success'
+        && (github.event_name != 'pull_request'
         || github.event.pull_request.head.repo.full_name == github.repository) }}
       shell: spack-bash {0}
       env:
@@ -173,9 +248,16 @@ runs:
       # snapshot, so concurrent jobs clobber and race it - a tag listed
       # before its manifest is readable aborts the step. Nothing reads it:
       # OCI installs fetch by tag from the spec hash, and reuse is off.
-      run: >
-        spack -e "$ENV_DIR" buildcache push --base-image ubuntu:24.04
-        --allow-missing push-buildcache
+      # Both envs, so the tested root and its test dependencies are cached
+      # as well as the untested root.
+      run: |
+        status=0
+        for dir in "$ENV_DIR" "${ENV_DIR%/}-cache"; do
+          [ -d "$dir" ] || continue
+          spack -e "$dir" buildcache push --base-image ubuntu:24.04 \
+            --allow-missing push-buildcache || status=1
+        done
+        exit "$status"
 
     # Names must be unique within a run, so squash the spec's punctuation.
     # Not truncated: the distinguishing variants sit at the tail.
@@ -194,5 +276,10 @@ runs:
       uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.log.outputs.name }}-log
-        path: log.xml
+        path: |
+          log.xml
+          log-deps.xml
+          log-cache.xml
+          ${{ inputs.env-path }}/spack.yaml
+          ${{ inputs.env-path }}/spack.lock
         retention-days: 7
