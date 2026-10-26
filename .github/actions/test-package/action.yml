@@ -254,8 +254,20 @@ runs:
         status=0
         for dir in "$ENV_DIR" "${ENV_DIR%/}-cache"; do
           [ -d "$dir" ] || continue
-          spack -e "$dir" buildcache push --base-image ubuntu:26.04 \
-            --allow-missing push-buildcache || status=1
+          # Registry token services can return transient 5xx errors.
+          for attempt in 1 2 3; do
+            if spack -e "$dir" buildcache push --base-image ubuntu:26.04 \
+              --allow-missing push-buildcache; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              status=1
+            else
+              delay=$((attempt * 10))
+              echo "::warning::Cache push for $dir failed (attempt $attempt/3); retrying in ${delay}s"
+              sleep "$delay"
+            fi
+          done
         done
         exit "$status"
 
