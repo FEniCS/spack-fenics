@@ -58,6 +58,8 @@ class PyFenicsFfcx(PythonPackage):
     depends_on("py-sympy", type="test")
     depends_on("py-numba", type="test")
     depends_on("py-pygraphviz", when="@0.8", type="test")
+    # Temporary until spack/spack-packages#7247 is included in our pin.
+    depends_on("graphviz@:13", when="@0.8", type="test")
 
     import_modules = ("ffcx",)
     # Spack's install-time import check (test_imports) runs without the
