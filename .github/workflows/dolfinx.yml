@@ -42,7 +42,8 @@ jobs:
   py-fenics-dolfinx:
     runs-on: ubuntu-26.04
     container: ubuntu:26.04
-    timeout-minutes: 240
+    # A cold Numba dependency stack can spend nearly four hours building LLVM.
+    timeout-minutes: 360
     permissions:
       contents: read
       packages: write
