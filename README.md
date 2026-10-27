@@ -54,7 +54,9 @@ where `fenics.fenics-dolfinx` implies the use of the `fenics` repository.
 We aim to keep the last three `x` versions `0.x.*` of `py-fenics-dolfinx`
 building with PETSc, SLEPc, ADIOS2, Parmetis, SCOTCH and KaHIP support using
 Ubuntu LTS-provided GCC and clang. Due to an unidentified performance issue we
-are currently not running the test suite for `py-fenics-dolfinx@0.8`.
+are currently not running the test suite for `py-fenics-dolfinx@0.8`. KaHIP CI
+coverage is temporarily disabled because its upstream argtable dependency fails
+to build with GCC 15.
 
 ## Uses
 
