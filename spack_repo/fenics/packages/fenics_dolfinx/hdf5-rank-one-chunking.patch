@@ -1,0 +1,20 @@
+Backport https://github.com/FEniCS/dolfinx/commit/fce7c44f220d4cb94c5149ad28cd1ab00909c319
+
+diff --git a/cpp/dolfinx/io/HDF5Interface.h b/cpp/dolfinx/io/HDF5Interface.h
+index f267702d4a..d0715a10c7 100644
+--- a/cpp/dolfinx/io/HDF5Interface.h
++++ b/cpp/dolfinx/io/HDF5Interface.h
+@@ -198,9 +198,11 @@ void write_dataset(hid_t file_handle, const std::string& dataset_path,
+       if (chunk_size < 1024)
+         chunk_size = 1024;
+ 
+-      hsize_t chunk_dims[2] = {chunk_size, dimsf[1]};
++      std::vector<hsize_t> chunk_dims = {chunk_size};
++      if (rank == 2)
++        chunk_dims.push_back(dimsf[1]);
+       chunking_properties = H5Pcreate(H5P_DATASET_CREATE);
+-      H5Pset_chunk(chunking_properties, rank, chunk_dims);
++      H5Pset_chunk(chunking_properties, rank, chunk_dims.data());
+     }
+     else
+       chunking_properties = H5P_DEFAULT;

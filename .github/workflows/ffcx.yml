@@ -16,8 +16,8 @@ concurrency:
 
 jobs:
   fenics-ufcx:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read
@@ -34,11 +34,11 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
-          spec: fenics-ufcx@${{ matrix.version }} %gcc@13
+          spec: fenics-ufcx@${{ matrix.version }} %gcc@15
 
   py-fenics-ffcx:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read
@@ -56,6 +56,6 @@ jobs:
       - uses: ./spack-fenics/.github/actions/test-package
         with:
           registry-token: ${{ secrets.GITHUB_TOKEN }}
-          spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@13
+          spec: py-fenics-ffcx@${{ matrix.version }} ^python %%gcc@15
           # The 0.8 full suite is broken; its standalone demo still runs.
           test-mode: ${{ matrix.version == '0.8' && 'dependencies' || 'root' }}

@@ -31,6 +31,8 @@ class FenicsDolfinx(CMakePackage):
         version("0.8.0", sha256="acf3104d9ecc0380677a6faf69eabfafc58d0cce43f7777e1307b95701c7cad9")
 
     patch("0.8-boost-filesystem.patch", when="@0.8")
+    patch("interval-optional-assert.patch", when="@0.9")
+    patch("hdf5-rank-one-chunking.patch", when="@0.10")
 
     # CMake build types
     variant(

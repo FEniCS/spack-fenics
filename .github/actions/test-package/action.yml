@@ -42,10 +42,10 @@ runs:
         SPEC: ${{ inputs.spec }}
         DEBIAN_FRONTEND: noninteractive
       run: |
-        # libclang-rt-18-dev is only a *recommend* of clang-18, so with
-        # recommends off any -fsanitize= link fails without it.
+        # Install the default Clang sanitizer runtime explicitly: with
+        # recommends off, -fsanitize= links otherwise fail.
         case "$SPEC" in
-          *clang@18*) clang="clang-18 libclang-rt-18-dev" ;;
+          *clang*) clang="clang libclang-rt-dev" ;;
           *) clang="" ;;
         esac
         # Root inside the container, but not on a bare runner.
@@ -64,8 +64,8 @@ runs:
       uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3
       with:
         spack_ref: v1.2.2
-        # spack/spack-packages @ 2026-10-23
-        packages_ref: 7edf5a3a9ec9b8bfd25ea388b8c7b3df062bc3cb
+        # spack/spack-packages @ 2026-10-25
+        packages_ref: ec33c8840c64bd5449f34d9f42fd96790ddb7569
 
     # Job-wide, not step-local: mirrors.yaml stores these names, and spack
     # re-resolves them in every later install step. Not GITHUB_*, which
@@ -97,7 +97,7 @@ runs:
          # access list with the Write role, or every push 403s.
          spack mirror add --unsigned --oci-username-variable GHCR_USER --oci-password-variable GHCR_TOKEN \
            push-buildcache oci://ghcr.io/fenics/spack-buildcache
-         spack config add "packages:all:require:['os=ubuntu24.04','target=x86_64_v3']"
+         spack config add "packages:all:require:['os=ubuntu26.04','target=x86_64_v3']"
          # Pad so pushed binaries stay relocatable: spack can only shrink a
          # prefix, so the build prefix must exceed any consumer's.
          spack config add "config:install_tree:padded_length:128"
@@ -254,8 +254,20 @@ runs:
         status=0
         for dir in "$ENV_DIR" "${ENV_DIR%/}-cache"; do
           [ -d "$dir" ] || continue
-          spack -e "$dir" buildcache push --base-image ubuntu:24.04 \
-            --allow-missing push-buildcache || status=1
+          # Registry token services can return transient 5xx errors.
+          for attempt in 1 2 3; do
+            if spack -e "$dir" buildcache push --base-image ubuntu:26.04 \
+              --allow-missing push-buildcache; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              status=1
+            else
+              delay=$((attempt * 10))
+              echo "::warning::Cache push for $dir failed (attempt $attempt/3); retrying in ${delay}s"
+              sleep "$delay"
+            fi
+          done
         done
         exit "$status"
 

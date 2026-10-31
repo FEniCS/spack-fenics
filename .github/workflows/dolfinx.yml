@@ -15,8 +15,8 @@ concurrency:
 
 jobs:
   fenics-dolfinx:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
     timeout-minutes: 240
     permissions:
       contents: read
@@ -26,7 +26,9 @@ jobs:
       matrix:
         # NOTE: clang sometimes likes stub or Intel MPI. Force MPI implementations.
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
-        spec: ["build_type=Developer %%c,cxx=clang@18 ^mpich", "build_type=Developer partitioners=kahip,parmetis,scotch +petsc +slepc +adios2 %%gcc@13 ^openmpi"]
+        # KaHIP is disabled: its upstream argtable dependency lacks <ctype.h>
+        # and fails to build with GCC 15. Re-enable once argtable is fixed.
+        spec: ["build_type=Developer %%c,cxx=clang@21 ^mpich", "build_type=Developer partitioners=parmetis,scotch +petsc +slepc +adios2 %%gcc@15 ^openmpi"]
 
     steps:
       - uses: actions/checkout@v7
@@ -40,9 +42,10 @@ jobs:
           test-mode: ${{ matrix.version == '0.8' && 'dependencies' || 'root' }}
 
   py-fenics-dolfinx:
-    runs-on: ubuntu-24.04
-    container: ubuntu:24.04
-    timeout-minutes: 240
+    runs-on: ubuntu-26.04
+    container: ubuntu:26.04
+    # A cold Numba dependency stack can spend nearly four hours building LLVM.
+    timeout-minutes: 360
     permissions:
       contents: read
       packages: write
@@ -51,14 +54,14 @@ jobs:
       matrix:
         version: ["main", "0.11", "0.10", "0.9", "0.8"]
         python-version: ["3.11", "3.14", "3.15"]
-        # NOTE: Overspecification of %%clang@18 to fix ABI issues (std::string related?).
+        # NOTE: Overspecification of %%clang@21 to fix ABI issues (std::string related?).
         # NOTE: clang sometimes likes stub or Intel MPI.
-        spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@13 ^petsc+mumps ^fenics-dolfinx+adios2 ^mpich",
-               "build_type=Developer %%clang@18 ^mpich"]
+        spec: ["build_type=Developer +petsc4py +slepc4py %%gcc@15 ^petsc+mumps ^fenics-dolfinx+adios2 ^mpich",
+               "build_type=Developer %%clang@21 ^mpich"]
         # Test new superlu-dist variant
         include:
           - version: "0.11"
-            spec: "build_type=Developer %%gcc@13 ^fenics-dolfinx+superlu-dist ^mpich"
+            spec: "build_type=Developer %%gcc@15 ^fenics-dolfinx+superlu-dist ^mpich"
             python-version: "3.12"
 
     steps:

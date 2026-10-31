@@ -174,8 +174,6 @@ class PyFenicsDolfinx(PythonPackage):
         excluded = []
         if self.spec.satisfies("@0.9"):
             excluded.append("test_cube_distance")
-            if self.spec["cxx"].satisfies("llvm@18"):
-                excluded.append("test_refine_interval")
         # Python 3.14 changed reference-count semantics.
         if self.spec.satisfies("@0.9:0.10 ^python@3.14:"):
             excluded.append("test_mpi_comm_refcount")

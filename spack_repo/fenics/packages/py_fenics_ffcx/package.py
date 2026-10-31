@@ -57,7 +57,6 @@ class PyFenicsFfcx(PythonPackage):
     depends_on("py-pytest-xdist", type="test")
     depends_on("py-sympy", type="test")
     depends_on("py-numba", type="test")
-    depends_on("py-pygraphviz", when="@0.8", type="test")
 
     import_modules = ("ffcx",)
     # Spack's install-time import check (test_imports) runs without the
@@ -86,6 +85,8 @@ class PyFenicsFfcx(PythonPackage):
         # test_cmdline.py invokes the installed 'ffcx' console script.
         entries = [join_path(self.prefix, "bin"), os.environ.get("PATH", "")]
         python.add_default_env("PATH", os.pathsep.join(e for e in entries if e))
+        # The optional graph visualization test requires pygraphviz.
+        args = ["-k", "not test_visualise"] if self.spec.satisfies("@0.8") else []
         with working_dir(join_path(self.stage.source_path, "test")):
             # Keep tests generating the same module on one xdist worker.
             python(
@@ -98,6 +99,7 @@ class PyFenicsFfcx(PythonPackage):
                 "--dist",
                 "loadfile",
                 ".",
+                *args,
             )
 
     @run_after("install")
