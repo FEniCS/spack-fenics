@@ -42,11 +42,24 @@ runs:
         SPEC: ${{ inputs.spec }}
         DEBIAN_FRONTEND: noninteractive
       run: |
-        # Install the default Clang sanitizer runtime explicitly: with
-        # recommends off, -fsanitize= links otherwise fail.
+        # Install the compiler versions the spec names (gcc@N, clang@N), so
+        # the spec, not the distro's default, decides what is tested, and a
+        # version the distro lacks fails here rather than at concretization.
+        # The unversioned gcc, g++ and gfortran below remain the compiler for
+        # anything the spec leaves unpinned, and Fortran for Clang builds.
+        # The Clang sanitizer runtime is explicit: with recommends off,
+        # -fsanitize= links otherwise fail.
+        compilers=""
+        for v in $(printf '%s\n' "$SPEC" | grep -oE 'gcc@[0-9]+' | cut -d@ -f2 | sort -u); do
+          compilers="$compilers gcc-$v g++-$v gfortran-$v"
+        done
+        for v in $(printf '%s\n' "$SPEC" | grep -oE 'clang@[0-9]+' | cut -d@ -f2 | sort -u); do
+          compilers="$compilers clang-$v libclang-rt-$v-dev"
+        done
+        # A Clang spec without a version gets the distro's default.
         case "$SPEC" in
-          *clang*) clang="clang libclang-rt-dev" ;;
-          *) clang="" ;;
+          *clang@[0-9]*) ;;
+          *clang*) compilers="$compilers clang libclang-rt-dev" ;;
         esac
         # Root inside the container, but not on a bare runner.
         sudo=$(command -v sudo || true)
@@ -55,7 +68,7 @@ runs:
         # its own make, curl, libffi and so on.
         $sudo apt-get install -y --no-install-recommends \
           file bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release \
-          patch python3 tar unzip xz-utils zstd $clang
+          patch python3 tar unzip xz-utils zstd $compilers
         $sudo rm -rf /var/lib/apt/lists/*
 
     - name: Set up spack
